@@ -28,9 +28,11 @@ namespace LiveBuild
 		/// </summary>
 		protected override void Initialize()
 		{
-			LiveBuildCommand.Initialize(this);
 			base.Initialize();
+			_liveBuild = new LiveBuild(this);
 		}
+
+		LiveBuild _liveBuild;
 
 		static LiveBuildCommandPackage()
 		{
