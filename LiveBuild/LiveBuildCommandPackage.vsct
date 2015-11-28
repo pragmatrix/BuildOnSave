@@ -31,13 +31,23 @@
     group; your package should define its own command set in order to avoid collisions
     with command ids defined by other packages. -->
 
+    <Menus>
+      <Menu guid="guidLiveBuildCommandPackageCmdSet" id="LiveBuildTopLevelMenu" priority="0x700" type="Menu">
+        <Parent guid="guidSHLMainMenu"
+                id="IDG_VS_MM_TOOLSADDINS" />
+        <Strings>
+          <ButtonText>TestMenu</ButtonText>
+          <CommandName>TestMenu</CommandName>
+        </Strings>
+      </Menu>    
+    </Menus>
     <!-- In this section you can define new menu groups. A menu group is a container for
          other menus or buttons (commands); from a visual point of view you can see the
          group as the part of a menu contained between two lines. The parent of a group
          must be a menu. -->
     <Groups>
-      <Group guid="guidLiveBuildCommandPackageCmdSet" id="MyMenuGroup" priority="0x0600">
-        <Parent guid="guidSHLMainMenu" id="IDM_VS_MENU_TOOLS"/>
+      <Group guid="guidLiveBuildCommandPackageCmdSet" id="LiveBuildMenuGroup" priority="0x0600">
+        <Parent guid="guidLiveBuildCommandPackageCmdSet" id="LiveBuildTopLevelMenu"/>
       </Group>
     </Groups>
 
@@ -53,7 +63,7 @@
               <CommandFlag>DynamicVisibility</CommandFlag>
           If you do not want an image next to your command, remove the Icon node /> -->
       <Button guid="guidLiveBuildCommandPackageCmdSet" id="LiveBuildCommandId" priority="0x0100" type="Button">
-        <Parent guid="guidLiveBuildCommandPackageCmdSet" id="MyMenuGroup" />
+        <Parent guid="guidLiveBuildCommandPackageCmdSet" id="LiveBuildMenuGroup" />
         <Icon guid="guidImages" id="bmpPic1" />
         <Strings>
           <ButtonText>Invoke LiveBuildCommand</ButtonText>
@@ -78,8 +88,9 @@
 
     <!-- This is the guid used to group the menu commands together -->
     <GuidSymbol name="guidLiveBuildCommandPackageCmdSet" value="{e2f191eb-1c5a-4d3c-adfb-d5b14dc47078}">
-      <IDSymbol name="MyMenuGroup" value="0x1020" />
       <IDSymbol name="LiveBuildCommandId" value="0x0100" />
+      <IDSymbol name="LiveBuildMenuGroup" value="0x1020" />
+      <IDSymbol name="LiveBuildTopLevelMenu" value="0x1021"/>
     </GuidSymbol>
 
     <GuidSymbol name="guidImages" value="{b7f1062b-87fe-46ff-8186-5bb17f2bc81b}" >
