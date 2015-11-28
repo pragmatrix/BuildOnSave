@@ -4,6 +4,10 @@
 // </copyright>
 //------------------------------------------------------------------------------
 
+using System;
+using System.Diagnostics;
+using System.Globalization;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using Microsoft.VisualStudio.Shell;
 
@@ -26,6 +30,28 @@ namespace LiveBuild
 		{
 			LiveBuildCommand.Initialize(this);
 			base.Initialize();
+		}
+
+		static LiveBuildCommandPackage()
+		{
+			RedirectSerilog14();
+		}
+
+		static void RedirectSerilog14()
+		{
+			ResolveEventHandler handler = null;
+
+			handler = (sender, args) => {
+				// Use latest strong name & version when trying to load SDK assemblies
+				var requestedAssembly = new AssemblyName(args.Name);
+				if (requestedAssembly.Name != "Serilog"  || requestedAssembly.Version.Major != 1 || requestedAssembly.Version.Minor != 4)
+					return null;
+
+				AppDomain.CurrentDomain.AssemblyResolve -= handler;
+
+				return Assembly.GetAssembly(typeof (Serilog.LoggerConfiguration));
+			};
+			AppDomain.CurrentDomain.AssemblyResolve += handler;
 		}
 	}
 }
