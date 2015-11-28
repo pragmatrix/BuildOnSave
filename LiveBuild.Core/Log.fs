@@ -10,7 +10,7 @@ type Log() =
         LoggerConfiguration()
 #if DEBUG
             .Destructure.FSharpTypes()
-            .WriteTo.Seq("http://localhost:5341")    
+            .WriteTo.Seq("http://localhost:5341") 
             .MinimumLevel.Debug()
 #endif
             .CreateLogger()

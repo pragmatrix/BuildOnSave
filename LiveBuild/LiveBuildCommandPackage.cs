@@ -18,9 +18,13 @@ namespace LiveBuild
 	// why is this needed?
 	[ProvideMenuResource("Menus.ctmenu", 1)]
 	[Guid(PackageGuidString)]
+
+	// This package needs to be loaded _before_ the user interacts with its UI.
+	[ProvideAutoLoad(Microsoft.VisualStudio.Shell.Interop.UIContextGuids80.SolutionExists)]
 	public sealed class LiveBuildCommandPackage : Package
 	{
 		const string PackageGuidString = "ce5fb4cb-f9c4-469e-ac59-647eb754148c";
+		LiveBuild _liveBuild;
 
 		/// <summary>
 		/// Initialization of the package; this method is called right after the package is sited, so this is the place
@@ -32,7 +36,6 @@ namespace LiveBuild
 			_liveBuild = new LiveBuild(this);
 		}
 
-		LiveBuild _liveBuild;
 
 		static LiveBuildCommandPackage()
 		{
