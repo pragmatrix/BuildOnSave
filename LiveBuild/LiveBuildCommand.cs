@@ -3,7 +3,7 @@ using System.ComponentModel.Design;
 using System.Globalization;
 using EnvDTE;
 using LiveBuild.Core;
-using Microsoft.VisualStudio.LanguageServices;
+// using Microsoft.VisualStudio.ComponentModelHost;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 
@@ -31,8 +31,10 @@ namespace LiveBuild
 
 		void MenuItemCallback(object sender, EventArgs e)
 		{
+#if false
 			var workspace =
 				((IComponentModel) Package.GetGlobalService(typeof (SComponentModel))).GetService<VisualStudioWorkspace>();
+#endif
 
 			var message = string.Format(CultureInfo.CurrentCulture, "Inside {0}.MenuItemCallback()", GetType().FullName);
 			const string Title = "LiveBuild";
