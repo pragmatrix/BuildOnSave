@@ -45,7 +45,7 @@ namespace LiveBuild
         /// <summary>
         /// LiveBuildCommandPackage GUID string.
         /// </summary>
-        public const string PackageGuidString = "ce5fb4cb-f9c4-469e-ac59-647eb754148c";
+        const string PackageGuidString = "ce5fb4cb-f9c4-469e-ac59-647eb754148c";
 
         /// <summary>
         /// Initializes a new instance of the <see cref="LiveBuildCommand"/> class.

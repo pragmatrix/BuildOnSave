@@ -36,8 +36,8 @@
         <Parent guid="guidSHLMainMenu"
                 id="IDG_VS_MM_TOOLSADDINS" />
         <Strings>
-          <ButtonText>TestMenu</ButtonText>
-          <CommandName>TestMenu</CommandName>
+          <ButtonText>LiveBuild</ButtonText>
+          <CommandName>LiveBuild</CommandName>
         </Strings>
       </Menu>    
     </Menus>
@@ -66,7 +66,7 @@
         <Parent guid="guidLiveBuildCommandPackageCmdSet" id="LiveBuildMenuGroup" />
         <Icon guid="guidImages" id="bmpPic1" />
         <Strings>
-          <ButtonText>Invoke LiveBuildCommand</ButtonText>
+          <ButtonText>Build Now!</ButtonText>
         </Strings>
       </Button>
     </Buttons>
