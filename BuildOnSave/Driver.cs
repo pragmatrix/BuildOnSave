@@ -8,11 +8,13 @@ namespace BuildOnSave
 	sealed class Driver
 	{
 		readonly DTE _dte;
+		public readonly BuildType BuildType;
 		readonly SynchronizationContext _context;
 
-		public Driver(DTE dte)
+		public Driver(DTE dte, BuildType buildType)
 		{
 			_dte = dte;
+			BuildType = buildType;
 			_context = SynchronizationContext.Current;
 		}
 
@@ -115,7 +117,7 @@ namespace BuildOnSave
 			try
 			{
 				_ignoreDocumentSaves = true;
-				build.Build();
+				beginBuild(solution, BuildType);
 			}
 			finally
 			{
@@ -124,12 +126,24 @@ namespace BuildOnSave
 			return true;
 		}
 
+		static void beginBuild(Solution solution, BuildType buildType)
+		{
+			var solutionBuild = solution.SolutionBuild;
+			switch (buildType)
+			{
+				case BuildType.Solution:
+					solutionBuild.Build();
+					break;
+				case BuildType.StartUpProject:
+					var startupProject = (string)((object[])solutionBuild.StartupProjects)[0];
+					solutionBuild.BuildProject(solutionBuild.ActiveConfiguration.Name, startupProject);
+					break;
+			}
+		}
+
 		void dumpState([CallerMemberName] string context = "")
 		{
-			Log.D("state: {state}, pending: {pending}, thread: {thread}, context: {context}",
-				_dte.Solution.SolutionBuild.BuildState,
-				_buildPending,
-				System.Threading.Thread.CurrentThread.ManagedThreadId, context);
+			Log.D("state: {state}, pending: {pending}, thread: {thread}, context: {context}", _dte.Solution.SolutionBuild.BuildState, _buildPending, System.Threading.Thread.CurrentThread.ManagedThreadId, context);
 		}
 	}
 }

@@ -1,7 +1,5 @@
 ﻿using System;
 using System.ComponentModel.Design;
-using System.Runtime.CompilerServices;
-using System.Threading;
 using EnvDTE;
 using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Shell;
@@ -11,10 +9,16 @@ namespace BuildOnSave
 	sealed class BuildOnSave
 	{
 		const int CommandId = 0x0100;
+		const int TopMenuCommandId = 0x1021;
+		const int BuildTypeSolutionCommandId = 0x101;
+		const int BuildTypeStartUpProjectCommandId = 0x102;
 		static readonly Guid CommandSet = new Guid("e2f191eb-1c5a-4d3c-adfb-d5b14dc47078");
 
 		readonly DTE _dte;
+		readonly MenuCommand _topMenu;
 		readonly MenuCommand _menuItem;
+		readonly MenuCommand _buildTypeSolution;
+		readonly MenuCommand _buildTypeStartUpProject;
 
 		// stored to prevent GC from collecting
 		readonly Events _events;
@@ -34,37 +38,51 @@ namespace BuildOnSave
 			_events = _dte.Events;
 			_documentEvents = _events.DocumentEvents;
 			_buildEvents = _events.BuildEvents;
+			var guid = typeof(VSConstants.VSStd97CmdID).GUID.ToString("B");
+			_buildSolutionEvent = _dte.Events.CommandEvents[guid, (int)VSConstants.VSStd97CmdID.BuildSln];
 
 			var commandService = serviceProvider.GetService(typeof(IMenuCommandService)) as OleMenuCommandService;
-			if (commandService == null)
-				return;
-			var menuCommandID = new CommandID(CommandSet, CommandId);
-			_menuItem = new MenuCommand(enableDisableBuildOnSave, menuCommandID);
+
+			_topMenu = new MenuCommand(delegate { }, new CommandID(CommandSet, TopMenuCommandId));
+			_menuItem = new MenuCommand(enableDisableBuildOnSave, new CommandID(CommandSet, CommandId));
+			_buildTypeSolution = new MenuCommand(setBuildTypeToSolution, new CommandID(CommandSet, BuildTypeSolutionCommandId));
+			_buildTypeStartUpProject = new MenuCommand(setBuildTypeToStartUpProject, new CommandID(CommandSet, BuildTypeStartUpProjectCommandId));
+
+			commandService.AddCommand(_topMenu);
+			commandService.AddCommand(_menuItem);
+			commandService.AddCommand(_buildTypeSolution);
+			commandService.AddCommand(_buildTypeStartUpProject);
+
+			_topMenu.Visible = true;
 
 			_solutionOptions = DefaultOptions;
-			
-			commandService.AddCommand(_menuItem);
-			_menuItem.Visible = true;
-
-			// intercept build solution command
-			var guid = typeof (VSConstants.VSStd97CmdID).GUID.ToString("B");
-
-			_buildSolutionEvent = _dte.Events.CommandEvents[guid, (int)VSConstants.VSStd97CmdID.BuildSln];
 
 			Log.I("BuildOnSave initialized");
 
 			syncOptions(_solutionOptions);
 		}
 
+		void setBuildTypeToSolution(object sender, EventArgs e)
+		{
+			_solutionOptions.BuildType = BuildType.Solution;
+			syncOptions(_solutionOptions);
+		}
+
+		void setBuildTypeToStartUpProject(object sender, EventArgs e)
+		{
+			_solutionOptions.BuildType = BuildType.StartUpProject;
+			syncOptions(_solutionOptions);
+		}
+
 		public void solutionOpened()
 		{
-			_menuItem.Visible = true;
+			_topMenu.Visible = true;
 		}
 
 		public void solutionClosed()
 		{
 			SolutionOptions = DefaultOptions;
-			_menuItem.Visible = false;
+			_topMenu.Visible = false;
 		}
 
 		void enableDisableBuildOnSave(object sender, EventArgs e)
@@ -76,18 +94,29 @@ namespace BuildOnSave
 		void syncOptions(SolutionOptions options)
 		{
 			if (options.Enabled)
-				connectDriver();
+				connectDriver(options.BuildType);
 			else
 				disconnectDriver();
+
+			if (_driver_ != null && _driver_.BuildType != options.BuildType)
+			{
+				disconnectDriver();
+				connectDriver(options.BuildType);
+			}
+
 			_menuItem.Checked = _driver_ != null;
+			_buildTypeSolution.Checked = options.BuildType == BuildType.Solution;
+			_buildTypeSolution.Enabled = _driver_ != null;
+			_buildTypeStartUpProject.Checked = options.BuildType == BuildType.StartUpProject;
+			_buildTypeStartUpProject.Enabled = _driver_ != null;
 		}
 
-		void connectDriver()
+		void connectDriver(BuildType buildType)
 		{
 			if (_driver_ != null)
 				return;
 
-			var driver = new Driver(_dte);
+			var driver = new Driver(_dte, buildType);
 
 			_documentEvents.DocumentSaved += driver.onDocumentSaved;
 
@@ -132,6 +161,10 @@ namespace BuildOnSave
 			}
 		}
 
-		static readonly SolutionOptions DefaultOptions = new SolutionOptions {Enabled = true};
+		static readonly SolutionOptions DefaultOptions = new SolutionOptions
+		{
+			Enabled = true,
+			BuildType = BuildType.Solution
+		};
 	}
 }

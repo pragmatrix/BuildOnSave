@@ -35,6 +35,8 @@
 			<Menu guid="guidBuildOnSavePackageCmdSet" id="BuildOnSaveTopLevelMenu" priority="0x700" type="Menu">
 				<Parent guid="guidSHLMainMenu"
 								id="IDG_VS_MM_TOOLSADDINS" />
+				<CommandFlag>DefaultInvisible</CommandFlag>
+				<CommandFlag>DynamicVisibility</CommandFlag>
 				<Strings>
 					<ButtonText>BuildOnSave</ButtonText>
 					<CommandName>BuildOnSave</CommandName>
@@ -47,6 +49,9 @@
 				 must be a menu. -->
 		<Groups>
 			<Group guid="guidBuildOnSavePackageCmdSet" id="BuildOnSaveMenuGroup" priority="0x0600">
+				<Parent guid="guidBuildOnSavePackageCmdSet" id="BuildOnSaveTopLevelMenu"/>
+			</Group>
+			<Group guid="guidBuildOnSavePackageCmdSet" id="BuildOnSaveMenuTargetGroup" priority="0x0600">
 				<Parent guid="guidBuildOnSavePackageCmdSet" id="BuildOnSaveTopLevelMenu"/>
 			</Group>
 		</Groups>
@@ -64,15 +69,25 @@
 					If you do not want an image next to your command, remove the Icon node /> -->
 			<Button guid="guidBuildOnSavePackageCmdSet" id="BuildOnSaveCommandId" priority="0x0100" type="Button">
 				<Parent guid="guidBuildOnSavePackageCmdSet" id="BuildOnSaveMenuGroup" />
-				<!--
-				<Icon guid="guidImages" id="bmpPic1" />
-				-->
-				<CommandFlag>DefaultInvisible</CommandFlag>
-				<CommandFlag>DynamicVisibility</CommandFlag>
 				<Strings>
 					<ButtonText>Build On Save</ButtonText>
 				</Strings>
 			</Button>
+
+			<Button guid="guidBuildOnSavePackageCmdSet" id="TargetSolutionCommandId" priority="0x0100" type="Button">
+				<Parent guid="guidBuildOnSavePackageCmdSet" id="BuildOnSaveMenuTargetGroup" />
+				<Strings>
+					<ButtonText>Build Solution</ButtonText>
+				</Strings>
+			</Button>
+
+			<Button guid="guidBuildOnSavePackageCmdSet" id="TargetStartupProjectCommandId" priority="0x0100" type="Button">
+				<Parent guid="guidBuildOnSavePackageCmdSet" id="BuildOnSaveMenuTargetGroup" />
+				<Strings>
+					<ButtonText>Build StartUp Project</ButtonText>
+				</Strings>
+			</Button>
+
 		</Buttons>
 
 		<!--The bitmaps section is used to define the bitmaps that are used for the commands.-->
@@ -92,9 +107,14 @@
 
 		<!-- This is the guid used to group the menu commands together -->
 		<GuidSymbol name="guidBuildOnSavePackageCmdSet" value="{e2f191eb-1c5a-4d3c-adfb-d5b14dc47078}">
+
 			<IDSymbol name="BuildOnSaveCommandId" value="0x0100" />
+			<IDSymbol name="TargetSolutionCommandId" value="0x0101" />
+			<IDSymbol name="TargetStartupProjectCommandId" value="0x0102" />
+
 			<IDSymbol name="BuildOnSaveMenuGroup" value="0x1020" />
 			<IDSymbol name="BuildOnSaveTopLevelMenu" value="0x1021"/>
+			<IDSymbol name="BuildOnSaveMenuTargetGroup" value="0x1022" />
 		</GuidSymbol>
 
 		<GuidSymbol name="guidImages" value="{b7f1062b-87fe-46ff-8186-5bb17f2bc81b}" >
