@@ -51,6 +51,7 @@
   <ItemGroup>
     <Compile Include="BuildOnSave.cs" />
     <Compile Include="BuildOnSavePackage.cs" />
+    <Compile Include="Driver.cs" />
     <Compile Include="Log.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

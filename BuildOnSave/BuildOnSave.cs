@@ -14,7 +14,7 @@ namespace BuildOnSave
 		static readonly Guid CommandSet = new Guid("e2f191eb-1c5a-4d3c-adfb-d5b14dc47078");
 
 		readonly DTE _dte;
-		readonly SynchronizationContext _context;
+		readonly MenuCommand _menuItem;
 
 		// stored to prevent GC from collecting
 		readonly Events _events;
@@ -23,12 +23,10 @@ namespace BuildOnSave
 		readonly CommandEvents _buildSolutionEvent;
 
 		// state
-		bool _buildPending;
-		bool _ignoreDocumentSaves;
+		Driver _driver_;
 
 		public BuildOnSave(Package package)
 		{
-			_context = SynchronizationContext.Current;
 			IServiceProvider serviceProvider = package;
 			_dte = serviceProvider.GetService(typeof(DTE)) as DTE;
 			_events = _dte.Events;
@@ -39,132 +37,72 @@ namespace BuildOnSave
 			if (commandService == null)
 				return;
 			var menuCommandID = new CommandID(CommandSet, CommandId);
-			var menuItem = new MenuCommand(delegate { }, menuCommandID);
-			commandService.AddCommand(menuItem);
+			_menuItem = new MenuCommand(enableDisableBuildOnSave, menuCommandID);
 
-			_documentEvents.DocumentSaved += onDocumentSaved;
-			_buildEvents.OnBuildBegin += onBuildBegin;
-			_buildEvents.OnBuildDone += onBuildDone;
+			commandService.AddCommand(_menuItem);
+			_menuItem.Visible = true;
+			_menuItem.Checked = true;
 
 			// intercept build solution command
 			var guid = typeof (VSConstants.VSStd97CmdID).GUID.ToString("B");
 
 			_buildSolutionEvent = _dte.Events.CommandEvents[guid, (int)VSConstants.VSStd97CmdID.BuildSln];
-			_buildSolutionEvent.BeforeExecute += onBeforeBuildSolutionCommand;
-			_buildSolutionEvent.AfterExecute += onAfterBuildSolutionCommand;
 
 			Log.I("BuildOnSave initialized");
+			connectDriver();
 		}
 
-		void onBeforeBuildSolutionCommand(string guid, int id, object customIn, object customOut, ref bool cancelDefault)
+		void enableDisableBuildOnSave(object sender, EventArgs e)
 		{
-			dumpState();
-			_ignoreDocumentSaves = true;
-		}
-
-		void onAfterBuildSolutionCommand(string guid, int id, object customIn, object customOut)
-		{
-			dumpState();
-			_ignoreDocumentSaves = false;
-		}
-
-		void onBuildBegin(vsBuildScope scope, vsBuildAction action)
-		{
-			dumpState();
-			Log.D("build begin {scope}, {action}", scope, action);
-		}
-
-		void onBuildDone(vsBuildScope scope, vsBuildAction action)
-		{
-			dumpState();
-			Log.D("build done {scope}, {action}", scope, action);
-
-			if (scope == vsBuildScope.vsBuildScopeSolution && action == vsBuildAction.vsBuildActionBuild)
+			if (_driver_ == null)
 			{
-				// need to schedul Build(), otherwise build output gets invisible.
-				schedule(mayBuildAfterBuildDone);
-			}
-		}
-
-		void onDocumentSaved(Document document)
-		{
-			dumpState();
-
-			// ignore if we are called back from Build().
-			if (!_ignoreDocumentSaves)
-			{
-				Log.D("document saved {path}:", document.FullName);
-				schedule(buildAfterSave);
+				connectDriver();
 			}
 			else
 			{
-				Log.D("document saved because of build, ignored");
+				disconnectDriver();
 			}
+
+			_menuItem.Checked = _driver_ != null;
 		}
 
-		void schedule(Action action)
+		void connectDriver()
 		{
-			_context.Post(_ => action(), null);
-		}
-
-		void buildAfterSave()
-		{
-			dumpState();
-			if (tryBeginBuild())
+			if (_driver_ != null)
 				return;
-			_buildPending = true;
-			Log.D("Can't build now, build pending");
+
+			var driver = new Driver(_dte);
+
+			_documentEvents.DocumentSaved += driver.onDocumentSaved;
+
+			_buildEvents.OnBuildBegin += driver.onBuildBegin;
+			_buildEvents.OnBuildDone += driver.onBuildDone;
+
+			_buildSolutionEvent.BeforeExecute += driver.onBeforeBuildSolutionCommand;
+			_buildSolutionEvent.AfterExecute += driver.onAfterBuildSolutionCommand;
+
+			_driver_ = driver;
+
+			Log.D("driver connected");
 		}
 
-		void mayBuildAfterBuildDone()
+		void disconnectDriver()
 		{
-			dumpState();
+			var driver = _driver_;
+			if (driver == null)
+				return;
 
-			if (_buildPending)
-			{
-				_buildPending = false;
-				Log.D("retrying build");
-				tryBeginBuild();
-			}
-		}
+			_documentEvents.DocumentSaved -= driver.onDocumentSaved;
 
-		bool tryBeginBuild()
-		{
-			dumpState();
+			_buildEvents.OnBuildBegin -= driver.onBuildBegin;
+			_buildEvents.OnBuildDone -= driver.onBuildDone;
 
-			var solution = _dte.Solution;
-			if (!solution.IsOpen)
-			{
-				Log.W("solution is not open");
-				return false;
-			}
+			_buildSolutionEvent.BeforeExecute -= driver.onBeforeBuildSolutionCommand;
+			_buildSolutionEvent.AfterExecute -= driver.onAfterBuildSolutionCommand;
 
-			var build = solution.SolutionBuild;
-			if (build.BuildState == vsBuildState.vsBuildStateInProgress)
-			{
-				Log.D("cant build");
-				return false;
-			}
-			Log.I("initiating build");
+			_driver_ = null;
 
-			try
-			{
-				_ignoreDocumentSaves = true;
-				build.Build();
-			}
-			finally
-			{
-				_ignoreDocumentSaves = false;
-			}
-			return true;
-		}
-
-		void dumpState([CallerMemberName] string context = "")
-		{
-			Log.D("state: {state}, pending: {pending}, thread: {thread}, context: {context}",
-				_dte.Solution.SolutionBuild.BuildState,
-				_buildPending,
-				System.Threading.Thread.CurrentThread.ManagedThreadId, context);
+			Log.D("driver disconnected");
 		}
 	}
 }

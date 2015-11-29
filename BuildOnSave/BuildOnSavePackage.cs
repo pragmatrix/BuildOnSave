@@ -14,7 +14,7 @@ namespace BuildOnSave
 	public sealed class BuildOnSavePackage : Package
 	{
 		const string PackageGuidString = "ce5fb4cb-f9c4-469e-ac59-647eb754148c";
-		BuildOnSave _liveBuild;
+		BuildOnSave _buildOnSave;
 
 		/// <summary>
 		/// Initialization of the package; this method is called right after the package is sited, so this is the place
@@ -23,7 +23,7 @@ namespace BuildOnSave
 		protected override void Initialize()
 		{
 			base.Initialize();
-			_liveBuild = new BuildOnSave(this);
+			_buildOnSave = new BuildOnSave(this);
 		}
 	}
 }

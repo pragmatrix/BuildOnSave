@@ -64,9 +64,13 @@
 					If you do not want an image next to your command, remove the Icon node /> -->
 			<Button guid="guidBuildOnSavePackageCmdSet" id="BuildOnSaveCommandId" priority="0x0100" type="Button">
 				<Parent guid="guidBuildOnSavePackageCmdSet" id="BuildOnSaveMenuGroup" />
+				<!--
 				<Icon guid="guidImages" id="bmpPic1" />
+				-->
+				<CommandFlag>DefaultInvisible</CommandFlag>
+				<CommandFlag>DynamicVisibility</CommandFlag>
 				<Strings>
-					<ButtonText>Build Now!</ButtonText>
+					<ButtonText>Build On Save</ButtonText>
 				</Strings>
 			</Button>
 		</Buttons>
