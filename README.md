@@ -10,7 +10,7 @@ Notes:
 
 - Runs with Visual Studio 2015 only, barely tested, and highly experimental.
 - Some debug information is written to the Windows debug output, which can be monitored with [DebugView](https://technet.microsoft.com/en-us/sysinternals/debugview.aspx).
-- There is a menu named BuildOnSave in the Visual Studio menu bar. Right now it does nothing :)
+- There is a menu named BuildOnSave in the Visual Studio menu bar. Right now, there is only one option that disables BuildOnSave.  This is a per solution option.
 
 ## Download & Installation
 
