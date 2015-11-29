@@ -131,6 +131,5 @@ namespace BuildOnSave
 				_buildPending,
 				System.Threading.Thread.CurrentThread.ManagedThreadId, context);
 		}
-
 	}
 }
