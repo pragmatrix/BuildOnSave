@@ -21,7 +21,6 @@ namespace BuildOnSave
 		const string PackageGuidString = "ce5fb4cb-f9c4-469e-ac59-647eb754148c";
 		BuildOnSave _buildOnSave_;
 
-
 		const string SettingsVersionCode = "1";
 		const string KeySolutionSettings = "BuildOnSave_" + SettingsVersionCode;
 
