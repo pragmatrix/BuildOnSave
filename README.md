@@ -1,8 +1,8 @@
 # BuildOnSave
 
-## Introduction 
-
 Never wait for a build anymore!
+
+## Introduction 
 
 This is an extension for Visual Studio that builds the current solution as soon a file is saved, and in combination with wonderful extension [SaveAllTheTime](https://visualstudiogallery.msdn.microsoft.com/ee676c7f-83e8-4ef8-87ab-22a95ae8f1d4), enables a live, background build experience while you type.
 
