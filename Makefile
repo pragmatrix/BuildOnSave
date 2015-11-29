@@ -6,10 +6,10 @@ msbuild=msbuild.exe /verbosity:m /nologo /p:Configuration=Release
 
 .PHONY: build
 build:
-	${msbuild} LiveBuild.sln /t:"LiveBuild:Rebuild"
+	${msbuild} BuildOnSave.sln /t:"BuildOnSave:Rebuild"
 
 .PHONY: package
 package: build
-	cp LiveBuild/bin/Release/LiveBuild.vsix /tmp/
+	cp BuildOnSave/bin/Release/BuildOnSave.vsix /tmp/
 
 

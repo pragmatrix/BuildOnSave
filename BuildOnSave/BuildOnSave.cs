@@ -6,9 +6,9 @@ using EnvDTE;
 using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Shell;
 
-namespace LiveBuild
+namespace BuildOnSave
 {
-	sealed class LiveBuild
+	sealed class BuildOnSave
 	{
 		const int CommandId = 0x0100;
 		static readonly Guid CommandSet = new Guid("e2f191eb-1c5a-4d3c-adfb-d5b14dc47078");
@@ -26,7 +26,7 @@ namespace LiveBuild
 		bool _buildPending;
 		bool _ignoreDocumentSaves;
 
-		public LiveBuild(Package package)
+		public BuildOnSave(Package package)
 		{
 			_context = SynchronizationContext.Current;
 			IServiceProvider serviceProvider = package;
@@ -53,7 +53,7 @@ namespace LiveBuild
 			_buildSolutionEvent.BeforeExecute += onBeforeBuildSolutionCommand;
 			_buildSolutionEvent.AfterExecute += onAfterBuildSolutionCommand;
 
-			Log.I("LiveBuild initialized");
+			Log.I("BuildOnSave initialized");
 		}
 
 		void onBeforeBuildSolutionCommand(string guid, int id, object customIn, object customOut, ref bool cancelDefault)

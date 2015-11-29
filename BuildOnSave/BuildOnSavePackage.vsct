@@ -22,7 +22,7 @@
 
 	<!--The Commands section is where commands, menus, and menu groups are defined.
 			This section uses a Guid to identify the package that provides the command defined inside it. -->
-	<Commands package="guidLiveBuildCommandPackage">
+	<Commands package="guidBuildOnSavePackage">
 		<!-- Inside this section we have different sub-sections: one for the menus, another
 		for the menu groups, one for the buttons (the actual commands), one for the combos
 		and the last one for the bitmaps used. Each element is identified by a command id that
@@ -32,12 +32,12 @@
 		with command ids defined by other packages. -->
 
 		<Menus>
-			<Menu guid="guidLiveBuildCommandPackageCmdSet" id="LiveBuildTopLevelMenu" priority="0x700" type="Menu">
+			<Menu guid="guidBuildOnSavePackageCmdSet" id="BuildOnSaveTopLevelMenu" priority="0x700" type="Menu">
 				<Parent guid="guidSHLMainMenu"
 								id="IDG_VS_MM_TOOLSADDINS" />
 				<Strings>
-					<ButtonText>LiveBuild</ButtonText>
-					<CommandName>LiveBuild</CommandName>
+					<ButtonText>BuildOnSave</ButtonText>
+					<CommandName>BuildOnSave</CommandName>
 				</Strings>
 			</Menu>    
 		</Menus>
@@ -46,8 +46,8 @@
 				 group as the part of a menu contained between two lines. The parent of a group
 				 must be a menu. -->
 		<Groups>
-			<Group guid="guidLiveBuildCommandPackageCmdSet" id="LiveBuildMenuGroup" priority="0x0600">
-				<Parent guid="guidLiveBuildCommandPackageCmdSet" id="LiveBuildTopLevelMenu"/>
+			<Group guid="guidBuildOnSavePackageCmdSet" id="BuildOnSaveMenuGroup" priority="0x0600">
+				<Parent guid="guidBuildOnSavePackageCmdSet" id="BuildOnSaveTopLevelMenu"/>
 			</Group>
 		</Groups>
 
@@ -62,8 +62,8 @@
 							<CommandFlag>DefaultInvisible</CommandFlag>
 							<CommandFlag>DynamicVisibility</CommandFlag>
 					If you do not want an image next to your command, remove the Icon node /> -->
-			<Button guid="guidLiveBuildCommandPackageCmdSet" id="LiveBuildCommandId" priority="0x0100" type="Button">
-				<Parent guid="guidLiveBuildCommandPackageCmdSet" id="LiveBuildMenuGroup" />
+			<Button guid="guidBuildOnSavePackageCmdSet" id="BuildOnSaveCommandId" priority="0x0100" type="Button">
+				<Parent guid="guidBuildOnSavePackageCmdSet" id="BuildOnSaveMenuGroup" />
 				<Icon guid="guidImages" id="bmpPic1" />
 				<Strings>
 					<ButtonText>Build Now!</ButtonText>
@@ -78,19 +78,19 @@
 						bitmap strip containing the bitmaps and then there are the numeric ids of the elements used
 						inside a button definition. An important aspect of this declaration is that the element id
 						must be the actual index (1-based) of the bitmap inside the bitmap strip. -->
-			<Bitmap guid="guidImages" href="Resources\LiveBuildCommand.png" usedList="bmpPic1, bmpPic2, bmpPicSearch, bmpPicX, bmpPicArrows, bmpPicStrikethrough"/>
+			<Bitmap guid="guidImages" href="Resources\BuildOnSaveCommand.png" usedList="bmpPic1, bmpPic2, bmpPicSearch, bmpPicX, bmpPicArrows, bmpPicStrikethrough"/>
 		</Bitmaps>
 	</Commands>
 
 	<Symbols>
 		<!-- This is the package guid. -->
-		<GuidSymbol name="guidLiveBuildCommandPackage" value="{ce5fb4cb-f9c4-469e-ac59-647eb754148c}" />
+		<GuidSymbol name="guidBuildOnSavePackage" value="{ce5fb4cb-f9c4-469e-ac59-647eb754148c}" />
 
 		<!-- This is the guid used to group the menu commands together -->
-		<GuidSymbol name="guidLiveBuildCommandPackageCmdSet" value="{e2f191eb-1c5a-4d3c-adfb-d5b14dc47078}">
-			<IDSymbol name="LiveBuildCommandId" value="0x0100" />
-			<IDSymbol name="LiveBuildMenuGroup" value="0x1020" />
-			<IDSymbol name="LiveBuildTopLevelMenu" value="0x1021"/>
+		<GuidSymbol name="guidBuildOnSavePackageCmdSet" value="{e2f191eb-1c5a-4d3c-adfb-d5b14dc47078}">
+			<IDSymbol name="BuildOnSaveCommandId" value="0x0100" />
+			<IDSymbol name="BuildOnSaveMenuGroup" value="0x1020" />
+			<IDSymbol name="BuildOnSaveTopLevelMenu" value="0x1021"/>
 		</GuidSymbol>
 
 		<GuidSymbol name="guidImages" value="{b7f1062b-87fe-46ff-8186-5bb17f2bc81b}" >

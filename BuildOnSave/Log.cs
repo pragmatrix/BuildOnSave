@@ -1,7 +1,7 @@
 ﻿using Serilog;
 using Serilog.Events;
 
-namespace LiveBuild
+namespace BuildOnSave
 {
 	static class Log
 	{

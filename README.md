@@ -1,18 +1,20 @@
-# LiveBuild
+# BuildOnSave
 
 ## Introduction 
 
-Background compilation for Visual Studio ... actually, this is an extension for Visual Studio that builds the current solution as soon a file is saved, but in combination with wonderful extension [SaveAllTheTime](https://visualstudiogallery.msdn.microsoft.com/ee676c7f-83e8-4ef8-87ab-22a95ae8f1d4), LiveBuild enables a live, background build while you type.
+Never wait for a build anymore!
+
+This is an extension for Visual Studio that builds the current solution as soon a file is saved, and in combination with wonderful extension [SaveAllTheTime](https://visualstudiogallery.msdn.microsoft.com/ee676c7f-83e8-4ef8-87ab-22a95ae8f1d4), enables a live, background build experience while you type.
 
 Notes:
 
-- Barely tested with Visual Studio 2015 only, highly experimental, a one day hack, and my first VS extension.
+- Runs with Visual Studio 2015 only, barely tested, and highly experimental.
 - Some debug information is written to the Windows debug output, which can be monitored with [DebugView](https://technet.microsoft.com/en-us/sysinternals/debugview.aspx).
-- There is a menu named LiveBuild in the Visual Studio menu bar. Right now it does nothing :)
+- There is a menu named BuildOnSave in the Visual Studio menu bar. Right now it does nothing :)
 
 ## Download & Installation
 
-[Releases are here](https://github.com/pragmatrix/LiveBuild/releases). Download the LiveBuild.vsix file and double click it to install it into Visual Studio.
+[Releases are here](https://github.com/pragmatrix/BuildOnSave/releases). Download the BuildOnSave.vsix file and double click it to install it into Visual Studio.
 
 ## License
 
