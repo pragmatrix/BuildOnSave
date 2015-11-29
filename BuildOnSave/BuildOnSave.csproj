@@ -67,6 +67,10 @@
     <VSCTCompile Include="BuildOnSavePackage.vsct">
       <ResourceName>Menus.ctmenu</ResourceName>
     </VSCTCompile>
+    <Content Include="LICENSE.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <IncludeInVSIX>true</IncludeInVSIX>
+    </Content>
     <Content Include="Resources\BuildOnSaveCommand.png" />
     <Content Include="Resources\BuildOnSavePackage.ico" />
   </ItemGroup>
