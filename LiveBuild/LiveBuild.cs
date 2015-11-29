@@ -3,7 +3,6 @@ using System.ComponentModel.Design;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using EnvDTE;
-using LiveBuild.Core;
 using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Shell;
 
