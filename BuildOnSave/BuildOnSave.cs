@@ -22,7 +22,9 @@ namespace BuildOnSave
 		readonly BuildEvents _buildEvents;
 		readonly CommandEvents _buildSolutionEvent;
 
+
 		// state
+		SolutionOptions _solutionOptions;
 		Driver _driver_;
 
 		public BuildOnSave(Package package)
@@ -39,9 +41,10 @@ namespace BuildOnSave
 			var menuCommandID = new CommandID(CommandSet, CommandId);
 			_menuItem = new MenuCommand(enableDisableBuildOnSave, menuCommandID);
 
+			_solutionOptions = DefaultOptions;
+			
 			commandService.AddCommand(_menuItem);
 			_menuItem.Visible = true;
-			_menuItem.Checked = true;
 
 			// intercept build solution command
 			var guid = typeof (VSConstants.VSStd97CmdID).GUID.ToString("B");
@@ -49,20 +52,22 @@ namespace BuildOnSave
 			_buildSolutionEvent = _dte.Events.CommandEvents[guid, (int)VSConstants.VSStd97CmdID.BuildSln];
 
 			Log.I("BuildOnSave initialized");
-			connectDriver();
+
+			syncOptions(_solutionOptions);
 		}
 
 		void enableDisableBuildOnSave(object sender, EventArgs e)
 		{
-			if (_driver_ == null)
-			{
-				connectDriver();
-			}
-			else
-			{
-				disconnectDriver();
-			}
+			_solutionOptions.Enabled = !_solutionOptions.Enabled;
+			syncOptions(_solutionOptions);
+		}
 
+		void syncOptions(SolutionOptions options)
+		{
+			if (options.Enabled)
+				connectDriver();
+			else
+				disconnectDriver();
 			_menuItem.Checked = _driver_ != null;
 		}
 
@@ -104,5 +109,18 @@ namespace BuildOnSave
 
 			Log.D("driver disconnected");
 		}
+
+
+		public SolutionOptions SolutionOptions
+		{
+			get { return _solutionOptions; }
+			set
+			{
+				_solutionOptions = value;
+				syncOptions(_solutionOptions);
+			}
+		}
+
+		static readonly SolutionOptions DefaultOptions = new SolutionOptions {Enabled = true};
 	}
 }
