@@ -56,6 +56,17 @@ namespace BuildOnSave
 			syncOptions(_solutionOptions);
 		}
 
+		public void solutionOpened()
+		{
+			_menuItem.Visible = true;
+		}
+
+		public void solutionClosed()
+		{
+			SolutionOptions = DefaultOptions;
+			_menuItem.Visible = false;
+		}
+
 		void enableDisableBuildOnSave(object sender, EventArgs e)
 		{
 			_solutionOptions.Enabled = !_solutionOptions.Enabled;

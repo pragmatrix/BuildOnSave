@@ -2,6 +2,7 @@
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
+using EnvDTE;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 using Newtonsoft.Json;
@@ -24,9 +25,42 @@ namespace BuildOnSave
 		const string SettingsVersionCode = "1";
 		const string KeySolutionSettings = "BuildOnSave_" + SettingsVersionCode;
 
+		// Initialize()
+		DTE _dte;
+		Events _events;
+		SolutionEvents _solutionEvents;
+
 		public BuildOnSavePackage()
 		{
 			AddOptionKey(KeySolutionSettings);
+		}
+
+		/// <summary>
+		/// Initialization of the package; this method is called right after the package is sited, so this is the place
+		/// where you can put all the initialization code that rely on services provided by VisualStudio.
+		/// </summary>
+		protected override void Initialize()
+		{
+			// OnLoadOptions is called in base.Initialize(), so we need to set up _buildOnSave_ now
+			_dte = GetService(typeof (DTE)) as DTE;
+			_events = _dte.Events;
+			_solutionEvents = _events.SolutionEvents;
+			_solutionEvents.Opened += solutionOpened;
+			_solutionEvents.AfterClosing += solutionClosed;
+			_buildOnSave_ = new BuildOnSave(this);
+			base.Initialize();
+		}
+
+		void solutionOpened()
+		{
+			_buildOnSave_.solutionOpened();
+		}
+
+		void solutionClosed()
+		{
+			// reset default options (starts driver though)
+			Log.D("solution closed, resetting to default options");
+			_buildOnSave_.solutionClosed();
 		}
 
 		protected override void OnLoadOptions(string key, Stream stream)
@@ -82,16 +116,6 @@ namespace BuildOnSave
 			{
 				return reader.ReadToEnd();
 			}
-		}
-
-		/// <summary>
-		/// Initialization of the package; this method is called right after the package is sited, so this is the place
-		/// where you can put all the initialization code that rely on services provided by VisualStudio.
-		/// </summary>
-		protected override void Initialize()
-		{
-			base.Initialize();
-			_buildOnSave_ = new BuildOnSave(this);
 		}
 	}
 }
