@@ -16,6 +16,17 @@ Notes:
 
 [Releases are here](https://github.com/pragmatrix/BuildOnSave/releases). Download the BuildOnSave.vsix file and double click it to install it into Visual Studio.
 
+## Development & Contribution
+
+To start the Experimental Instance of Visual Studio for a debug session (F5 or Ctrl+F5), add the following to the Debug tab of BuildOnSave's project properties:
+
+- Start external program:  
+  `C:\Program Files (x86)\Microsoft Visual Studio 14.0\Common7\IDE\devenv.exe`
+- Command line arguments:  
+  `/rootsuffix Exp`
+
+For developing BuildOnSave, please use tabs and the [EditorConfig](https://visualstudiogallery.msdn.microsoft.com/c8bccfe2-650c-4b42-bc5c-845e21f96328) extension.
+
 ## License
 
 Copyright (c) 2015, Armin Sander  
