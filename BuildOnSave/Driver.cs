@@ -132,7 +132,9 @@ namespace BuildOnSave
 			switch (buildType)
 			{
 				case BuildType.Solution:
-					solutionBuild.Build();
+					// solutionBuild.Build();
+					var driver = new BackgroundDriver(solution.DTE);
+					driver.beginBuildSolution();
 					break;
 				case BuildType.StartUpProject:
 					var startupProject = (string)((object[])solutionBuild.StartupProjects)[0];
