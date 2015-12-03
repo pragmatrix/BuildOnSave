@@ -3,6 +3,7 @@ using System.ComponentModel.Design;
 using EnvDTE;
 using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Shell;
+using Microsoft.VisualStudio.Shell.Interop;
 
 namespace BuildOnSave
 {
@@ -19,6 +20,8 @@ namespace BuildOnSave
 		readonly MenuCommand _menuItem;
 		readonly MenuCommand _buildTypeSolution;
 		readonly MenuCommand _buildTypeStartUpProject;
+
+		readonly OutputWindowPane _outputPane;
 
 		// stored to prevent GC from collecting
 		readonly Events _events;
@@ -52,6 +55,11 @@ namespace BuildOnSave
 			commandService.AddCommand(_menuItem);
 			commandService.AddCommand(_buildTypeSolution);
 			commandService.AddCommand(_buildTypeStartUpProject);
+
+			// create the output pane.
+
+			var outputWindow = (OutputWindow)_dte.Windows.Item(EnvDTE.Constants.vsWindowKindOutput).Object;
+			_outputPane = outputWindow.OutputWindowPanes.Add("BuildOnSave");
 
 			_topMenu.Visible = true;
 
@@ -116,7 +124,7 @@ namespace BuildOnSave
 			if (_driver_ != null)
 				return;
 
-			var driver = new Driver(_dte, buildType);
+			var driver = new Driver(_dte, buildType, _outputPane);
 
 			_documentEvents.DocumentSaved += driver.onDocumentSaved;
 

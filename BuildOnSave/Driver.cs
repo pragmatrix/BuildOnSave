@@ -9,12 +9,14 @@ namespace BuildOnSave
 	{
 		readonly DTE _dte;
 		public readonly BuildType BuildType;
+		readonly OutputWindowPane _outputPane;
 		readonly SynchronizationContext _context;
 
-		public Driver(DTE dte, BuildType buildType)
+		public Driver(DTE dte, BuildType buildType, OutputWindowPane outputPane)
 		{
 			_dte = dte;
 			BuildType = buildType;
+			_outputPane = outputPane;
 			_context = SynchronizationContext.Current;
 		}
 
@@ -126,14 +128,14 @@ namespace BuildOnSave
 			return true;
 		}
 
-		static void beginBuild(Solution solution, BuildType buildType)
+		void beginBuild(Solution solution, BuildType buildType)
 		{
 			var solutionBuild = solution.SolutionBuild;
 			switch (buildType)
 			{
 				case BuildType.Solution:
 					// solutionBuild.Build();
-					var driver = new BackgroundDriver(solution.DTE);
+					var driver = new BackgroundDriver(solution.DTE, _outputPane);
 					driver.beginBuildSolution();
 					break;
 				case BuildType.StartUpProject:

@@ -10,10 +10,12 @@ namespace BuildOnSave
 	sealed class BackgroundDriver
 	{
 		readonly DTE _dte;
+		readonly OutputWindowPane _pane;
 
-		public BackgroundDriver(DTE dte)
+		public BackgroundDriver(DTE dte, OutputWindowPane pane)
 		{
 			_dte = dte;
+			_pane = pane;
 		}
 
 		public void beginBuildSolution()
@@ -25,9 +27,10 @@ namespace BuildOnSave
 			ThreadPool.QueueUserWorkItem(_ => buildSolution(file, configuration));
 		}
 
-		static void buildSolution(string solutionFilePath, string configuration)
+		void buildSolution(string solutionFilePath, string configuration)
 		{
-			var logger = new ConsoleLogger(LoggerVerbosity.Minimal, str => Log.D(str), color => { }, () => { });
+			_pane.Clear();
+			var logger = new ConsoleLogger(LoggerVerbosity.Minimal, str => _pane.OutputString(str), color => { }, () => { });
 
 			var parameters = new BuildParameters
 			{
