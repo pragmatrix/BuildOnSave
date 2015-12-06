@@ -86,30 +86,35 @@ namespace BuildOnSave
 				var globalProperties = new Dictionary<string, string> {["Configuration"] = configuration};
 				var request = new BuildRequestData(solutionFilePath, globalProperties, "14.0", new string[0], null);
 				var result = buildManager.Build(parameters, request);
-
-				var failureCount = 0;
-				var successCount = 0;
-				var skippedCount = 0;
-				foreach (var r in result.ResultsByTarget)
-				{
-					var r1 = r.Value;
-					var code = r1.ResultCode;
-					switch (code)
-					{
-						case TargetResultCode.Skipped:
-							++skippedCount;
-							break;
-						case TargetResultCode.Success:
-							++successCount;
-							break;
-						case TargetResultCode.Failure:
-							++failureCount;
-							break;
-					}
-				}
-
-				_pane.OutputString($"========== BuildOnSave: {successCount} succeeded, {failureCount} failed, {skippedCount} skipped ==========");
+				printBuildSummary(result);
 			}
+		}
+
+		void printBuildSummary(BuildResult result)
+		{
+			var failureCount = 0;
+			var successCount = 0;
+			var skippedCount = 0;
+			foreach (var r in result.ResultsByTarget)
+			{
+				var r1 = r.Value;
+				var code = r1.ResultCode;
+				switch (code)
+				{
+					case TargetResultCode.Skipped:
+						++skippedCount;
+						break;
+					case TargetResultCode.Success:
+						++successCount;
+						break;
+					case TargetResultCode.Failure:
+						++failureCount;
+						break;
+				}
+			}
+
+			_pane.OutputString(
+				$"========== BuildOnSave: {successCount} succeeded, {failureCount} failed, {skippedCount} skipped ==========");
 		}
 	}
 }
