@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using EnvDTE;
@@ -144,10 +145,12 @@ namespace BuildOnSave
 			switch (buildType)
 			{
 				case BuildType.Solution:
-					_backgroundBuild.beginBuildSolution(buildCompleted);
+					_backgroundBuild.beginBuild(buildCompleted, null);
 					break;
-				case BuildType.StartUpProject:
-					_backgroundBuild.beginBuildSolution(buildCompleted);
+				case BuildType.StartupProject:
+					var startupProject = (string)((object[])solution.SolutionBuild.StartupProjects)[0];
+					var startupProjectName = Path.GetFileNameWithoutExtension(startupProject);
+					_backgroundBuild.beginBuild(buildCompleted, startupProjectName);
 					break;
 			}
 		}

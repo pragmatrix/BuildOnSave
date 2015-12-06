@@ -3,7 +3,7 @@
 	enum BuildType
 	{
 		Solution,
-		StartUpProject
+		StartupProject
 	}
 
 	sealed class SolutionOptions

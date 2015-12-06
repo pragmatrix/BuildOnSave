@@ -24,7 +24,7 @@ namespace BuildOnSave
 			_context = SynchronizationContext.Current;
 		}
 
-		public void beginBuildSolution(Action onCompleted)
+		public void beginBuild(Action onCompleted, string target_)
 		{
 			if (_isRunning)
 			{
@@ -36,6 +36,11 @@ namespace BuildOnSave
 			var configuration = solution.SolutionBuild.ActiveConfiguration.Name;
 			var file = _dte.Solution.FullName;
 
+
+			var globalProperties = new Dictionary<string, string> { ["Configuration"] = configuration };
+			var targets = target_ != null ? new[] {target_} : new string[0];
+			var request = new BuildRequestData(file, globalProperties, "14.0", targets, null);
+
 			_isRunning = true;
 
 			Action completed = () =>
@@ -44,14 +49,14 @@ namespace BuildOnSave
 				onCompleted();
 			};
 
-			ThreadPool.QueueUserWorkItem(_ => buildSolution(file, configuration, completed));
+			ThreadPool.QueueUserWorkItem(_ => build(request, completed));
 		}
 
-		void buildSolution(string solutionFilePath, string configuration, Action onCompleted)
+		void build(BuildRequestData request, Action onCompleted)
 		{
 			try
 			{
-				buildSolutionCore(solutionFilePath, configuration);
+				buildCore(request);
 			}
 			catch (Exception e)
 			{
@@ -63,7 +68,7 @@ namespace BuildOnSave
 			}
 		}
 
-		void buildSolutionCore(string solutionFilePath, string configuration)
+		void buildCore(BuildRequestData request)
 		{
 			_pane.Clear();
 			_pane.Activate();
@@ -82,14 +87,12 @@ namespace BuildOnSave
 
 			using (var buildManager = new BuildManager())
 			{
-				var globalProperties = new Dictionary<string, string> {["Configuration"] = configuration};
-				var request = new BuildRequestData(solutionFilePath, globalProperties, "14.0", new string[0], null);
 				var result = buildManager.Build(parameters, request);
-				printBuildSummary(result);
+				printSummary(result);
 			}
 		}
 
-		void printBuildSummary(BuildResult result)
+		void printSummary(BuildResult result)
 		{
 			var failureCount = 0;
 			var successCount = 0;

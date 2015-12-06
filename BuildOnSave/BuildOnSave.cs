@@ -78,7 +78,7 @@ namespace BuildOnSave
 
 		void setBuildTypeToStartUpProject(object sender, EventArgs e)
 		{
-			_solutionOptions.BuildType = BuildType.StartUpProject;
+			_solutionOptions.BuildType = BuildType.StartupProject;
 			syncOptions(_solutionOptions);
 		}
 
@@ -115,7 +115,7 @@ namespace BuildOnSave
 			_menuItem.Checked = _driver_ != null;
 			_buildTypeSolution.Checked = options.BuildType == BuildType.Solution;
 			_buildTypeSolution.Enabled = _driver_ != null;
-			_buildTypeStartUpProject.Checked = options.BuildType == BuildType.StartUpProject;
+			_buildTypeStartUpProject.Checked = options.BuildType == BuildType.StartupProject;
 			_buildTypeStartUpProject.Enabled = _driver_ != null;
 		}
 
