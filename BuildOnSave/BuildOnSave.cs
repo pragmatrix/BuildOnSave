@@ -12,14 +12,14 @@ namespace BuildOnSave
 		const int CommandId = 0x0100;
 		const int TopMenuCommandId = 0x1021;
 		const int BuildTypeSolutionCommandId = 0x101;
-		const int BuildTypeStartUpProjectCommandId = 0x102;
+		const int BuildTypeStartupProjectCommandId = 0x102;
 		static readonly Guid CommandSet = new Guid("e2f191eb-1c5a-4d3c-adfb-d5b14dc47078");
 
 		readonly DTE _dte;
 		readonly MenuCommand _topMenu;
 		readonly MenuCommand _menuItem;
 		readonly MenuCommand _buildTypeSolution;
-		readonly MenuCommand _buildTypeStartUpProject;
+		readonly MenuCommand _buildTypeStartupProject;
 
 		readonly OutputWindowPane _outputPane;
 
@@ -49,12 +49,12 @@ namespace BuildOnSave
 			_topMenu = new MenuCommand(delegate { }, new CommandID(CommandSet, TopMenuCommandId));
 			_menuItem = new MenuCommand(enableDisableBuildOnSave, new CommandID(CommandSet, CommandId));
 			_buildTypeSolution = new MenuCommand(setBuildTypeToSolution, new CommandID(CommandSet, BuildTypeSolutionCommandId));
-			_buildTypeStartUpProject = new MenuCommand(setBuildTypeToStartUpProject, new CommandID(CommandSet, BuildTypeStartUpProjectCommandId));
+			_buildTypeStartupProject = new MenuCommand(setBuildTypeToStartupProject, new CommandID(CommandSet, BuildTypeStartupProjectCommandId));
 
 			commandService.AddCommand(_topMenu);
 			commandService.AddCommand(_menuItem);
 			commandService.AddCommand(_buildTypeSolution);
-			commandService.AddCommand(_buildTypeStartUpProject);
+			commandService.AddCommand(_buildTypeStartupProject);
 
 			// create the output pane.
 
@@ -76,7 +76,7 @@ namespace BuildOnSave
 			syncOptions(_solutionOptions);
 		}
 
-		void setBuildTypeToStartUpProject(object sender, EventArgs e)
+		void setBuildTypeToStartupProject(object sender, EventArgs e)
 		{
 			_solutionOptions.BuildType = BuildType.StartupProject;
 			syncOptions(_solutionOptions);
@@ -115,8 +115,8 @@ namespace BuildOnSave
 			_menuItem.Checked = _driver_ != null;
 			_buildTypeSolution.Checked = options.BuildType == BuildType.Solution;
 			_buildTypeSolution.Enabled = _driver_ != null;
-			_buildTypeStartUpProject.Checked = options.BuildType == BuildType.StartupProject;
-			_buildTypeStartUpProject.Enabled = _driver_ != null;
+			_buildTypeStartupProject.Checked = options.BuildType == BuildType.StartupProject;
+			_buildTypeStartupProject.Enabled = _driver_ != null;
 		}
 
 		void connectDriver(BuildType buildType)

@@ -84,7 +84,7 @@
 			<Button guid="guidBuildOnSavePackageCmdSet" id="TargetStartupProjectCommandId" priority="0x0100" type="Button">
 				<Parent guid="guidBuildOnSavePackageCmdSet" id="BuildOnSaveMenuTargetGroup" />
 				<Strings>
-					<ButtonText>Build StartUp Project</ButtonText>
+					<ButtonText>Build Startup Project</ButtonText>
 				</Strings>
 			</Button>
 
