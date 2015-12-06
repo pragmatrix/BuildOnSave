@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Threading;
 using EnvDTE;
+using EnvDTE80;
 using Microsoft.Build.Execution;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Logging;
@@ -15,7 +16,6 @@ namespace BuildOnSave
 		readonly SynchronizationContext _context;
 		bool _isRunning;
 		public bool IsRunning => _isRunning;
-
 
 		public BackgroundBuild(DTE dte, OutputWindowPane pane)
 		{
@@ -32,12 +32,11 @@ namespace BuildOnSave
 				return;
 			}
 
-			var solution = _dte.Solution;
-			var configuration = solution.SolutionBuild.ActiveConfiguration.Name;
+			var solution = (Solution2)_dte.Solution;
+			var configuration = (SolutionConfiguration2)solution.SolutionBuild.ActiveConfiguration;
 			var file = _dte.Solution.FullName;
 
-
-			var globalProperties = new Dictionary<string, string> { ["Configuration"] = configuration };
+			var globalProperties = new Dictionary<string, string> { ["Configuration"] = configuration.Name, ["Platform"] = configuration.PlatformName };
 			var targets = target_ != null ? new[] {target_} : new string[0];
 			var request = new BuildRequestData(file, globalProperties, "14.0", targets, null);
 
