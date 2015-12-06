@@ -11,7 +11,6 @@ BuildOnSave is an extension for Visual Studio 2015 that builds the current solut
 Notes:
 
 - Runs with Visual Studio 2015 only, barely tested, and highly experimental.
-- Some debug information is written to the Windows debug output, which can be monitored with [DebugView](https://technet.microsoft.com/en-us/sysinternals/debugview.aspx).
 - There is a menu named BuildOnSave in the Visual Studio menu bar.
 - An output "pane" is registered for BuildOnSave and also activated as soon a build starts.
 - It's possible to automatically build the whole solution in its active configuration or a single project. This option is stored per solution.
@@ -30,6 +29,8 @@ To start the Experimental Instance of Visual Studio for a debug session (F5 or C
   `/rootsuffix Exp`
 
 For developing BuildOnSave, please use tabs and the [EditorConfig](https://visualstudiogallery.msdn.microsoft.com/c8bccfe2-650c-4b42-bc5c-845e21f96328) extension.
+
+Debug information is written to the Windows debug output, which can be monitored with [DebugView](https://technet.microsoft.com/en-us/sysinternals/debugview.aspx).
 
 ## License
 
