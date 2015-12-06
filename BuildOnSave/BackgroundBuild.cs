@@ -37,7 +37,6 @@ namespace BuildOnSave
 			var configuration = solution.SolutionBuild.ActiveConfiguration.Name;
 			var file = _dte.Solution.FullName;
 
-			_pane.Activate();
 			_isRunning = true;
 
 			Action completed = () =>
@@ -68,7 +67,12 @@ namespace BuildOnSave
 		void buildSolutionCore(string solutionFilePath, string configuration)
 		{
 			_pane.Clear();
-			var logger = new ConsoleLogger(LoggerVerbosity.Minimal, str => _pane.OutputString(str), color => { }, () => { });
+			_pane.Activate();
+
+			var logger = new ConsoleLogger(LoggerVerbosity.Quiet, str => _pane.OutputString(str), color => { }, () => { })
+			{
+				SkipProjectStartedText = true
+			};
 
 			var parameters = new BuildParameters
 			{
@@ -81,7 +85,30 @@ namespace BuildOnSave
 			{
 				var globalProperties = new Dictionary<string, string> {["Configuration"] = configuration};
 				var request = new BuildRequestData(solutionFilePath, globalProperties, "14.0", new string[0], null);
-				buildManager.Build(parameters, request);
+				var result = buildManager.Build(parameters, request);
+
+				var failureCount = 0;
+				var successCount = 0;
+				var skippedCount = 0;
+				foreach (var r in result.ResultsByTarget)
+				{
+					var r1 = r.Value;
+					var code = r1.ResultCode;
+					switch (code)
+					{
+						case TargetResultCode.Skipped:
+							++skippedCount;
+							break;
+						case TargetResultCode.Success:
+							++successCount;
+							break;
+						case TargetResultCode.Failure:
+							++failureCount;
+							break;
+					}
+				}
+
+				_pane.OutputString($"========== BuildOnSave: {successCount} succeeded, {failureCount} failed, {skippedCount} skipped ==========");
 			}
 		}
 	}
