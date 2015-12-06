@@ -124,7 +124,8 @@ namespace BuildOnSave
 			if (_driver_ != null)
 				return;
 
-			var driver = new Driver(_dte, buildType, _outputPane);
+			var backgroundBuild = new BackgroundBuild(_dte, _outputPane);
+			var driver = new Driver(_dte, buildType, backgroundBuild);
 
 			_documentEvents.DocumentSaved += driver.onDocumentSaved;
 

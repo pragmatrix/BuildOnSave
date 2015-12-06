@@ -8,21 +8,23 @@ namespace BuildOnSave
 	sealed class Driver
 	{
 		readonly DTE _dte;
+		readonly Solution _solution;
 		public readonly BuildType BuildType;
-		readonly OutputWindowPane _outputPane;
+		readonly BackgroundBuild _backgroundBuild;
 		readonly SynchronizationContext _context;
 
-		public Driver(DTE dte, BuildType buildType, OutputWindowPane outputPane)
+		public Driver(DTE dte, BuildType buildType, BackgroundBuild backgroundBuild)
 		{
 			_dte = dte;
+			_solution = _dte.Solution;
 			BuildType = buildType;
-			_outputPane = outputPane;
+			_backgroundBuild = backgroundBuild;
 			_context = SynchronizationContext.Current;
 		}
 
 		// state
-		bool _buildPending;
 		bool _ignoreDocumentSaves;
+		bool _buildAgain;
 
 		public void onBeforeBuildSolutionCommand(string guid, int id, object customIn, object customOut, ref bool cancelDefault)
 		{
@@ -47,27 +49,19 @@ namespace BuildOnSave
 			dumpState();
 			Log.D("build done {scope}, {action}", scope, action);
 
-			if (scope == vsBuildScope.vsBuildScopeSolution && action == vsBuildAction.vsBuildActionBuild)
-			{
-				// need to schedul Build(), otherwise build output gets invisible.
-				schedule(mayBuildAfterBuildDone);
-			}
+			if (scope != vsBuildScope.vsBuildScopeSolution || action != vsBuildAction.vsBuildActionBuild)
+				return;
+			buildCompleted();
 		}
 
 		public void onDocumentSaved(Document document)
 		{
 			dumpState();
 
-			// ignore if we are called back from Build().
-			if (!_ignoreDocumentSaves)
-			{
-				Log.D("document saved {path}:", document.FullName);
-				schedule(buildAfterSave);
-			}
-			else
-			{
-				Log.D("document saved because of build, ignored");
-			}
+			if (_ignoreDocumentSaves || !document.belongsToAnOpenProject())
+				return;
+			Log.D("document saved {path}:", document.FullName);
+			schedule(beginBuild);
 		}
 
 		void schedule(Action action)
@@ -75,79 +69,100 @@ namespace BuildOnSave
 			_context.Post(_ => action(), null);
 		}
 
-		void buildAfterSave()
+		void beginBuild()
 		{
-			dumpState();
-			if (tryBeginBuild())
-				return;
-			_buildPending = true;
-			Log.D("Can't build now, build pending");
-		}
-
-		void mayBuildAfterBuildDone()
-		{
-			dumpState();
-
-			if (_buildPending)
+			if (!IsVSOrOurBuildRunning)
 			{
-				_buildPending = false;
-				Log.D("retrying build");
-				tryBeginBuild();
+				saveAllSolutionFiles();
+				beginBuild(_dte.Solution, BuildType);
+			}
+			else
+			{
+				_buildAgain = true;
 			}
 		}
 
-		bool tryBeginBuild()
+		void saveAllSolutionFiles()
 		{
-			dumpState();
-
-			var solution = _dte.Solution;
-			if (!solution.IsOpen)
-			{
-				Log.W("solution is not open");
-				return false;
-			}
-
-			var build = solution.SolutionBuild;
-			if (build.BuildState == vsBuildState.vsBuildStateInProgress)
-			{
-				Log.D("build in progress, can't build");
-				return false;
-			}
-
-			Log.I("initiating build");
-
 			try
 			{
 				_ignoreDocumentSaves = true;
-				beginBuild(solution, BuildType);
+				saveAllOpenDocumentsBelongingToAProject();
+				saveAllOpenProjects();
+				saveSolution();
 			}
 			finally
 			{
 				_ignoreDocumentSaves = false;
 			}
-			return true;
 		}
+
+		void saveAllOpenDocumentsBelongingToAProject()
+		{
+			// note:
+			// _dte.Documents.SaveAll();
+			// saves also documents that do not belong to any project, we don't want to do that.
+
+			foreach (Document document in _dte.Documents)
+			{
+				if (document.Saved || !document.belongsToAnOpenProject())
+					continue;
+				Log.D("document {name} is not saved, saving now", document.Name);
+				document.Save();
+			}
+		}
+
+		void saveAllOpenProjects()
+		{
+			foreach (Project project in _dte.Solution.Projects)
+			{
+				if (!project.Saved)
+				{
+					Log.D("project {name} is not saved, saving now", project.Name);
+					project.Save();
+				}
+			}
+		}
+
+		void saveSolution()
+		{
+			if (!_solution.Saved)
+			{
+				Log.D("solution is not saved, saving now");
+				_solution.SaveAs(_dte.Solution.FullName);
+			}
+		}
+
+		bool IsVSOrOurBuildRunning => IsVSBuildRunning || IsOurBuildRunning;
+		bool IsVSBuildRunning => _solution.IsOpen && _solution.SolutionBuild.BuildState == vsBuildState.vsBuildStateInProgress;
+		bool IsOurBuildRunning => _backgroundBuild.IsRunning;
 
 		void beginBuild(Solution solution, BuildType buildType)
 		{
-			var solutionBuild = solution.SolutionBuild;
+			dumpState();
+
 			switch (buildType)
 			{
 				case BuildType.Solution:
-					// solutionBuild.Build();
-					var driver = new BackgroundDriver(solution.DTE, _outputPane);
-					driver.beginBuildSolution();
+					_backgroundBuild.beginBuildSolution(buildCompleted);
 					break;
 				case BuildType.StartUpProject:
-					var startupProject = (string)((object[])solutionBuild.StartupProjects)[0];
-					solutionBuild.BuildProject(solutionBuild.ActiveConfiguration.Name, startupProject);
+					_backgroundBuild.beginBuildSolution(buildCompleted);
 					break;
 			}
 		}
 
+		void buildCompleted()
+		{
+			if (!_buildAgain)
+				return;
+			_buildAgain = false;
+			schedule(beginBuild);
+		}
+
 		void dumpState([CallerMemberName] string context = "")
 		{
-			Log.D("state: {state}, pending: {pending}, thread: {thread}, context: {context}", _dte.Solution.SolutionBuild.BuildState, _buildPending, System.Threading.Thread.CurrentThread.ManagedThreadId, context);
+			Log.D("{context}: state: {state}, again: {again}, thread: {thread}", context, _dte.Solution.SolutionBuild.BuildState, _buildAgain, System.Threading.Thread.CurrentThread.ManagedThreadId);
 		}
 	}
 }

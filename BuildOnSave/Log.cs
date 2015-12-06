@@ -1,4 +1,5 @@
-﻿using Serilog;
+﻿using System;
+using Serilog;
 using Serilog.Events;
 
 namespace BuildOnSave
@@ -37,6 +38,35 @@ namespace BuildOnSave
 		public static void V(string template, params object[] values)
 		{
 			log.Write(LogEventLevel.Verbose, template, values);
+		}
+
+		public static void F(Exception e, string template, params object[] values)
+		{
+			log.Write(LogEventLevel.Fatal, e, template, values);
+		}
+
+		public static void E(Exception e, string template, params object[] values)
+		{
+			log.Write(LogEventLevel.Error, e, template, values);
+		}
+
+		public static void W(Exception e, string template, params object[] values)
+		{
+			log.Write(LogEventLevel.Warning, e, template, values);
+		}
+
+		public static void I(Exception e, string template, params object[] values)
+		{
+			log.Write(LogEventLevel.Information, e, template, values);
+		}
+
+		public static void D(Exception e, string template, params object[] values)
+		{
+			log.Write(LogEventLevel.Debug, e, template, values);
+		}
+		public static void V(Exception e, string template, params object[] values)
+		{
+			log.Write(LogEventLevel.Verbose, e, template, values);
 		}
 	}
 }

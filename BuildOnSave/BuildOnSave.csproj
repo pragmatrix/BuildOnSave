@@ -50,10 +50,11 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="BackgroundDriver.cs" />
+    <Compile Include="BackgroundBuild.cs" />
     <Compile Include="BuildOnSave.cs" />
     <Compile Include="BuildOnSavePackage.cs" />
     <Compile Include="Driver.cs" />
+    <Compile Include="DTEExtensions.cs" />
     <Compile Include="Log.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SolutionOptions.cs" />
