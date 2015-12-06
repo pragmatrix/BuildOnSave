@@ -37,6 +37,7 @@ namespace BuildOnSave
 			var configuration = solution.SolutionBuild.ActiveConfiguration.Name;
 			var file = _dte.Solution.FullName;
 
+			_pane.Activate();
 			_isRunning = true;
 
 			Action completed = () =>
