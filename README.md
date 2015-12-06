@@ -14,7 +14,7 @@ Notes:
 - Some debug information is written to the Windows debug output, which can be monitored with [DebugView](https://technet.microsoft.com/en-us/sysinternals/debugview.aspx).
 - There is a menu named BuildOnSave in the Visual Studio menu bar.
 - An output "pane" is registered for BuildOnSave and also activated as soon a build starts.
-- It's possible to automatically build the whole solution in its active configuration or a single project.
+- It's possible to automatically build the whole solution in its active configuration or a single project. This option is stored per solution.
 
 ## Download & Installation
 
