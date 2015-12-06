@@ -18,7 +18,7 @@ Notes:
 
 ## Download & Installation
 
-[Releases are here](https://github.com/pragmatrix/BuildOnSave/releases). Download the BuildOnSave.vsix file and double click it to install it into Visual Studio.
+At the [Visual Studio Extension Gallery](https://visualstudiogallery.msdn.microsoft.com/2b31b977-ffc9-4066-83e8-c5596786acd0), or via the [Releases tab](https://github.com/pragmatrix/BuildOnSave/releases) here on Github where you can download the download the BuildOnSave.vsix file and double click it to install it into Visual Studio.
 
 ## Development & Contribution
 
