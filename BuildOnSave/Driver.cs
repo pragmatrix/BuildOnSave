@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using EnvDTE;
@@ -92,6 +93,10 @@ namespace BuildOnSave
 				saveAllOpenProjects();
 				saveSolution();
 			}
+			catch (Exception e)
+			{
+				Log.E(e, "failed to save documents");
+			}
 			finally
 			{
 				_ignoreDocumentSaves = false;
@@ -103,6 +108,10 @@ namespace BuildOnSave
 			// note:
 			// _dte.Documents.SaveAll();
 			// saves also documents that do not belong to any project, we don't want to do that.
+
+			// I received once a COM exception here. There is a problem after starting up and when there is a project page open, 
+			// that when the file is saved, this project page comes up and somehone screws everything up. Probably related to 
+			// the combination of Extensions I've installed (reproduced in the SharedSafe project).
 
 			foreach (Document document in _dte.Documents)
 			{
