@@ -1,6 +1,6 @@
 # BuildOnSave
 
-Put your cores to use and reduce the time to wait for your build!
+Put your cores to use and minimize the time to wait for your build!
 
 [![Build status](https://ci.appveyor.com/api/projects/status/4opfv6rmmw9mlums?svg=true)](https://ci.appveyor.com/project/pragmatrix/buildonsave)
 
