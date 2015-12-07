@@ -110,7 +110,7 @@ namespace BuildOnSave
 			// saves also documents that do not belong to any project, we don't want to do that.
 
 			// I received once a COM exception here. There is a problem after starting up and when there is a project page open, 
-			// that when the file is saved, this project page comes up and somehone screws everything up. Probably related to 
+			// then, when the file is saved, this project page comes up and somehone screws everything up. Probably related to 
 			// the combination of Extensions I've installed (reproduced in the SharedSafe project).
 
 			foreach (Document document in _dte.Documents)
