@@ -17,9 +17,11 @@ Notes:
 
 ## Download & Installation
 
-At the [Visual Studio Extension Gallery](https://visualstudiogallery.msdn.microsoft.com/2b31b977-ffc9-4066-83e8-c5596786acd0), or via the [Releases tab](https://github.com/pragmatrix/BuildOnSave/releases) here on Github where you can download the download the BuildOnSave.vsix file and double click it to install it into Visual Studio.
+At the [Visual Studio Extension Gallery](https://visualstudiogallery.msdn.microsoft.com/2b31b977-ffc9-4066-83e8-c5596786acd0), or via the [Releases tab](https://github.com/pragmatrix/BuildOnSave/releases) here on Github where you can download the BuildOnSave.vsix file and double click it to install it into Visual Studio.
 
 ## Development & Contribution
+
+Clone the repository and open the solution file `BuildOnSave.sln` in Visual Studio 2015. BuildOnSave should compile out of the box.
 
 To start the Experimental Instance of Visual Studio for a debug session (F5 or Ctrl+F5), add the following to the Debug tab of BuildOnSave's project properties:
 
