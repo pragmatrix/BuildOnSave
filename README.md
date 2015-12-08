@@ -8,12 +8,10 @@ Put your cores to use and minimize the time to wait for your build!
 
 BuildOnSave is an extension for Visual Studio 2015 that builds the current solution as soon a file is saved, and in combination with the wonderful extension [SaveAllTheTime](https://visualstudiogallery.msdn.microsoft.com/ee676c7f-83e8-4ef8-87ab-22a95ae8f1d4), enables a live, background build experience while you type.
 
-Notes:
+Features:
 
-- Runs with Visual Studio 2015 only, barely tested, and highly experimental.
-- There is a menu named BuildOnSave in the Visual Studio menu bar.
-- An output "pane" is registered for BuildOnSave and also activated as soon a build starts.
-- It's possible to automatically build the whole solution in its active configuration or a single project. This option is stored per solution.
+- There is a menu named BuildOnSave in the Visual Studio menu bar with options to disable BuildOnSave, build the whole solution in its active configuration, or the startup project only. The options are stored per solution.
+- An output "pane" is registered for BuildOnSave and activates as soon a build starts. 
 
 ## Download & Installation
 
