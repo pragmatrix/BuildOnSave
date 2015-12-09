@@ -12,7 +12,6 @@ Features:
 
 - There is a menu named BuildOnSave in the Visual Studio menu bar with options to disable BuildOnSave, build the whole solution in its active configuration, or the startup project only. The options are stored per solution.
 - An output "pane" is registered for BuildOnSave and activates as soon a build starts. 
-- Like the regular build, errors from the background build also show up in the Error List panel.
 
 ## Download & Installation
 
