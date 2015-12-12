@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using EnvDTE;
@@ -26,6 +27,29 @@ namespace BuildOnSave
 			_context = SynchronizationContext.Current;
 		}
 
+		struct BuildRequest
+		{
+			public BuildRequest(string solutionFilename, string project, string configuration, string platform)
+			{
+				SolutionFilename = solutionFilename;
+				Project_ = project;
+				Configuration = configuration;
+				Platform = platform;
+			}
+
+			public readonly string SolutionFilename;
+			public readonly string Project_;
+			public readonly string Configuration;
+			public readonly string Platform;
+
+			public BuildRequestData createData()
+			{
+				var globalProperties = new Dictionary<string, string> { ["Configuration"] = Configuration, ["Platform"] = Platform };
+				var targets = Project_ != null ? new[] { Project_ } : new string[0];
+				return new BuildRequestData(SolutionFilename, globalProperties, "14.0", targets, null);
+			}
+		}
+
 		public void beginBuild(Action onCompleted, string target_)
 		{
 			if (_isRunning)
@@ -36,11 +60,8 @@ namespace BuildOnSave
 
 			var solution = (Solution2)_dte.Solution;
 			var configuration = (SolutionConfiguration2)solution.SolutionBuild.ActiveConfiguration;
-			var file = _dte.Solution.FullName;
-
-			var globalProperties = new Dictionary<string, string> { ["Configuration"] = configuration.Name, ["Platform"] = configuration.PlatformName };
-			var targets = target_ != null ? new[] {target_} : new string[0];
-			var request = new BuildRequestData(file, globalProperties, "14.0", targets, null);
+			var solutionFilename = solution.FullName;
+			var request = new BuildRequest(solutionFilename, target_, configuration.Name, configuration.PlatformName);
 
 			_isRunning = true;
 
@@ -53,7 +74,7 @@ namespace BuildOnSave
 			ThreadPool.QueueUserWorkItem(_ => build(request, completed));
 		}
 
-		void build(BuildRequestData request, Action onCompleted)
+		void build(BuildRequest request, Action onCompleted)
 		{
 			try
 			{
@@ -69,7 +90,7 @@ namespace BuildOnSave
 			}
 		}
 
-		void buildCore(BuildRequestData request)
+		void buildCore(BuildRequest request)
 		{
 			_pane.Clear();
 			_pane.Activate();
@@ -90,12 +111,25 @@ namespace BuildOnSave
 				DetailedSummary = false
 			};
 
+			printIntro(request);
+
 			using (var buildManager = new BuildManager())
 			{
-				buildManager.Build(parameters, request);
+				buildManager.Build(parameters, request.createData());
 			}
 
 			printSummary(summaryLogger);
+		}
+
+		void printIntro(BuildRequest request)
+		{
+			var isSolution = request.Project_ == null;
+			var projectInfo = isSolution
+				? "Solution: " + getSolutionNameFromFilename(request.SolutionFilename)
+				: "Project: " + request.Project_;
+			var configurationInfo = "Configuration: " + request.Configuration + " " + request.Platform;
+
+			_pane.OutputString($"---------- BuildOnSave: {projectInfo}, {configurationInfo} ----------\n");
 		}
 
 		void printSummary(SummaryLogger logger)
@@ -114,6 +148,11 @@ namespace BuildOnSave
 		static bool isSolutionFilename(string fn)
 		{
 			return fn.EndsWith(".sln", true, CultureInfo.InvariantCulture);
+		}
+
+		static string getSolutionNameFromFilename(string fn)
+		{
+			return Path.GetFileNameWithoutExtension(fn);
 		}
 
 		struct ProjectBuildResult
