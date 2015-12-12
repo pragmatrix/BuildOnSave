@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -115,7 +116,11 @@ namespace BuildOnSave
 
 			using (var buildManager = new BuildManager())
 			{
-				buildManager.Build(parameters, request.createData());
+				var sw = new Stopwatch();
+				sw.Start();
+				var result = buildManager.Build(parameters, request.createData());
+				var time = sw.Elapsed;
+				Log.D("build time: {@tm}", time);
 			}
 
 			printSummary(summaryLogger);
@@ -139,8 +144,14 @@ namespace BuildOnSave
 				.ProjectResults
 				.Where(result => !isSolutionFilename(result.Filename))
 				.ToArray();
-			var succeded = results.Count(result => result.Succeeded);
-			var failed = results.Count(result => !result.Succeeded);
+
+			var projectResults =
+				results
+					.GroupBy(result => result.ProjectId)
+					.Select(rs => rs.Last());
+
+			var succeded = projectResults.Count(result => result.Succeeded);
+			var failed = projectResults.Count(result => !result.Succeeded);
 
 			_pane.OutputString($"========== BuildOnSave: {succeded} succeeded, {failed} failed ==========\n");
 		}
@@ -155,22 +166,30 @@ namespace BuildOnSave
 			return Path.GetFileNameWithoutExtension(fn);
 		}
 
-		struct ProjectBuildResult
+		struct BuildResult
 		{
-			public ProjectBuildResult(string filename, bool succeeded)
+
+			public BuildResult(int projectId, string filename, bool succeeded)
 			{
+				ProjectId = projectId;
 				Filename = filename;
 				Succeeded = succeeded;
 			}
 
+			public readonly int ProjectId;
 			public readonly string Filename;
 			public readonly bool Succeeded;
+
+			public override string ToString()
+			{
+				return $"id: {ProjectId}, fn: {Filename}, succeeded: {Succeeded}";
+			}
 		}
 
 		sealed class SummaryLogger : ILogger
 		{
-			readonly List<ProjectBuildResult> _projectResults = new List<ProjectBuildResult>();
-			public IEnumerable<ProjectBuildResult> ProjectResults => _projectResults.ToArray();
+			readonly List<BuildResult> _projectResults = new List<BuildResult>();
+			public IEnumerable<BuildResult> ProjectResults => _projectResults.ToArray();
 
 			public void Initialize(IEventSource eventSource)
 			{
@@ -179,7 +198,7 @@ namespace BuildOnSave
 
 			void onProjectFinished(object sender, ProjectFinishedEventArgs e)
 			{
-				_projectResults.Add(new ProjectBuildResult(e.ProjectFile, e.Succeeded));
+				_projectResults.Add(new BuildResult(e.BuildEventContext.ProjectInstanceId, e.ProjectFile, e.Succeeded));
 			}
 
 			public void Shutdown()
