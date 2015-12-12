@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
 using System.Threading;
 using EnvDTE;
 using EnvDTE80;
@@ -72,50 +74,81 @@ namespace BuildOnSave
 			_pane.Clear();
 			_pane.Activate();
 
-			var logger = new ConsoleLogger(LoggerVerbosity.Quiet, str => _pane.OutputString(str), color => { }, () => { })
+			var consoleLogger = new ConsoleLogger(LoggerVerbosity.Quiet, str => _pane.OutputString(str), color => { }, () => { })
 			{
-				SkipProjectStartedText = true
+				SkipProjectStartedText = true,
+				ShowSummary = false
 			};
 
+			var summaryLogger = new SummaryLogger();
+			
 			var parameters = new BuildParameters
 			{
-				Loggers = new ILogger[] {logger},
+				Loggers = new ILogger[] {consoleLogger, summaryLogger},
 				EnableNodeReuse = false,
-				ShutdownInProcNodeOnBuildFinish = true
+				ShutdownInProcNodeOnBuildFinish = true,
+				DetailedSummary = false
 			};
 
 			using (var buildManager = new BuildManager())
 			{
-				var result = buildManager.Build(parameters, request);
-				printSummary(result);
+				buildManager.Build(parameters, request);
 			}
+
+			printSummary(summaryLogger);
 		}
 
-		void printSummary(BuildResult result)
+		void printSummary(SummaryLogger logger)
 		{
-			var failureCount = 0;
-			var successCount = 0;
-			var skippedCount = 0;
-			foreach (var r in result.ResultsByTarget)
+			var results = 
+				logger
+				.ProjectResults
+				.Where(result => !isSolutionFilename(result.Filename))
+				.ToArray();
+			var succeded = results.Count(result => result.Succeeded);
+			var failed = results.Count(result => !result.Succeeded);
+
+			_pane.OutputString($"========== BuildOnSave: {succeded} succeeded, {failed} failed ==========\n");
+		}
+
+		static bool isSolutionFilename(string fn)
+		{
+			return fn.EndsWith(".sln", true, CultureInfo.InvariantCulture);
+		}
+
+		struct ProjectBuildResult
+		{
+			public ProjectBuildResult(string filename, bool succeeded)
 			{
-				var r1 = r.Value;
-				var code = r1.ResultCode;
-				switch (code)
-				{
-					case TargetResultCode.Skipped:
-						++skippedCount;
-						break;
-					case TargetResultCode.Success:
-						++successCount;
-						break;
-					case TargetResultCode.Failure:
-						++failureCount;
-						break;
-				}
+				Filename = filename;
+				Succeeded = succeeded;
 			}
 
-			_pane.OutputString(
-				$"========== BuildOnSave: {successCount} succeeded, {failureCount} failed, {skippedCount} skipped ==========");
+			public readonly string Filename;
+			public readonly bool Succeeded;
+		}
+
+		sealed class SummaryLogger : ILogger
+		{
+			readonly List<ProjectBuildResult> _projectResults = new List<ProjectBuildResult>();
+			public IEnumerable<ProjectBuildResult> ProjectResults => _projectResults.ToArray();
+
+			public void Initialize(IEventSource eventSource)
+			{
+				eventSource.ProjectFinished += onProjectFinished;
+			}
+
+			void onProjectFinished(object sender, ProjectFinishedEventArgs e)
+			{
+				_projectResults.Add(new ProjectBuildResult(e.ProjectFile, e.Succeeded));
+			}
+
+			public void Shutdown()
+			{
+			}
+
+			public LoggerVerbosity Verbosity { get; set; }
+			public string Parameters { get; set; }
 		}
 	}
 }
