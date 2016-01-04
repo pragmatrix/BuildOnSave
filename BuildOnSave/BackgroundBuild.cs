@@ -5,6 +5,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using EnvDTE;
 using EnvDTE80;
 using Microsoft.Build.Execution;
@@ -17,15 +18,21 @@ namespace BuildOnSave
 	{
 		readonly DTE _dte;
 		readonly OutputWindowPane _pane;
-		readonly SynchronizationContext _context;
-		bool _isRunning;
-		public bool IsRunning => _isRunning;
+		readonly SynchronizationContext _mainThread;
+
+		// State as seen from the main thread.
+		CancellationTokenSource _buildCancellation_;
+		public bool IsRunning => _buildCancellation_ != null;
+
+		// State as seen from the background thread.
+		readonly object _coreSyncRoot = new object();
+		bool _coreRunning;
 
 		public BackgroundBuild(DTE dte, OutputWindowPane pane)
 		{
 			_dte = dte;
 			_pane = pane;
-			_context = SynchronizationContext.Current;
+			_mainThread = SynchronizationContext.Current;
 		}
 
 		struct BuildRequest
@@ -51,9 +58,15 @@ namespace BuildOnSave
 			}
 		}
 
+		/// <summary>
+		/// Asynchronously begins a background build.
+		/// </summary>
+		/// <param name="onCompleted"></param>
+		/// <param name="target_">The optional target to build</param>
+
 		public void beginBuild(Action onCompleted, string target_)
 		{
-			if (_isRunning)
+			if (IsRunning)
 			{
 				Log.E("internal error: build is running");
 				return;
@@ -64,22 +77,48 @@ namespace BuildOnSave
 			var solutionFilename = solution.FullName;
 			var request = new BuildRequest(solutionFilename, target_, configuration.Name, configuration.PlatformName);
 
-			_isRunning = true;
+			_buildCancellation_ = new CancellationTokenSource();
 
 			Action completed = () =>
 			{
-				_isRunning = false;
+				_buildCancellation_.Dispose();
+				_buildCancellation_ = null;
 				onCompleted();
 			};
 
-			ThreadPool.QueueUserWorkItem(_ => build(request, completed));
+			ThreadPool.QueueUserWorkItem(_ => build(request, _buildCancellation_.Token, completed));
 		}
 
-		void build(BuildRequest request, Action onCompleted)
+		/// <summary>
+		/// Cancel an outstanding build and wait for it to end. 
+		/// Note that this method may return at the time the build actually ends but shortly before IsRunning is set to false.
+		/// </summary>
+		public void cancelAndWait()
+		{
+			_buildCancellation_?.Cancel();
+
+			lock (_coreSyncRoot)
+			{
+				while (_coreRunning)
+					Monitor.Wait(_coreSyncRoot);
+			}
+		}
+
+		void build(BuildRequest request, CancellationToken cancellation, Action onCompleted)
 		{
 			try
 			{
-				buildCore(request);
+				lock (_coreSyncRoot)
+				{
+					_coreRunning = true;
+					Monitor.PulseAll(_coreSyncRoot);
+				}
+
+				// cancelAndWait() may cancel _and_ return before _coreRunning was set to true, we
+				// want to be sure to not start another build then.
+				cancellation.ThrowIfCancellationRequested();
+
+				buildCore(request, cancellation);
 			}
 			catch (Exception e)
 			{
@@ -87,16 +126,28 @@ namespace BuildOnSave
 			}
 			finally
 			{
-				_context.Post(_ => onCompleted(), null);
+				lock (_coreSyncRoot)
+				{
+					_coreRunning = false;
+					Monitor.PulseAll(_coreSyncRoot);
+				}
+
+				_mainThread.Post(_ => onCompleted(), null);
 			}
 		}
 
-		void buildCore(BuildRequest request)
+		void buildCore(BuildRequest request, CancellationToken cancellation)
 		{
-			_pane.Clear();
-			_pane.Activate();
+			coreToIDE(() =>
+			{
+				_pane.Clear();
+				_pane.Activate();
+			});
 
-			var consoleLogger = new ConsoleLogger(LoggerVerbosity.Quiet, str => _pane.OutputString(str), color => { }, () => { })
+			var consoleLogger = new ConsoleLogger(LoggerVerbosity.Quiet, str => 
+				coreToIDE(() => _pane.OutputString(str)), 
+				color => { }, 
+				() => { })
 			{
 				SkipProjectStartedText = true,
 				ShowSummary = false
@@ -118,7 +169,16 @@ namespace BuildOnSave
 			{
 				var sw = new Stopwatch();
 				sw.Start();
-				var result = buildManager.Build(parameters, request.createData());
+				buildManager.BeginBuild(parameters);
+				using (cancellation.Register(() =>
+				{
+					Log.I("cancelling background build");
+					buildManager.CancelAllSubmissions();
+				}))
+				{
+					buildManager.BuildRequest(request.createData());
+				}
+				buildManager.EndBuild();
 				var time = sw.Elapsed;
 				Log.D("build time: {@tm}", time);
 			}
@@ -134,7 +194,7 @@ namespace BuildOnSave
 				: "Project: " + request.Project_;
 			var configurationInfo = "Configuration: " + request.Configuration + " " + request.Platform;
 
-			_pane.OutputString($"---------- BuildOnSave: {projectInfo}, {configurationInfo} ----------\n");
+			coreToIDE(() => _pane.OutputString($"---------- BuildOnSave: {projectInfo}, {configurationInfo} ----------\n"));
 		}
 
 		void printSummary(SummaryLogger logger)
@@ -153,7 +213,14 @@ namespace BuildOnSave
 			var succeded = projectResults.Count(result => result.Succeeded);
 			var failed = projectResults.Count(result => !result.Succeeded);
 
-			_pane.OutputString($"========== BuildOnSave: {succeded} succeeded, {failed} failed ==========\n");
+			coreToIDE(() => _pane.OutputString($"========== BuildOnSave: {succeded} succeeded, {failed} failed ==========\n"));
+		}
+
+		// The IDE _does_ marshal function invocation, but we don't want to run in any deadlocks, when the main thread calls
+		// cancelAndWait().
+		void coreToIDE(Action action)
+		{
+			_mainThread.Post(_ => action(), null);
 		}
 
 		static bool isSolutionFilename(string fn)
@@ -168,7 +235,6 @@ namespace BuildOnSave
 
 		struct BuildResult
 		{
-
 			public BuildResult(int projectId, string filename, bool succeeded)
 			{
 				ProjectId = projectId;

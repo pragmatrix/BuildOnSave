@@ -69,6 +69,7 @@
   <ItemGroup>
     <VSCTCompile Include="BuildOnSavePackage.vsct">
       <ResourceName>Menus.ctmenu</ResourceName>
+      <SubType>Designer</SubType>
     </VSCTCompile>
     <Content Include="LICENSE.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>

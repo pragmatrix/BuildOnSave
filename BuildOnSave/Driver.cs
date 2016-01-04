@@ -43,16 +43,25 @@ namespace BuildOnSave
 		public void onBuildBegin(vsBuildScope scope, vsBuildAction action)
 		{
 			dumpState();
-			Log.D("build begin {scope}, {action}", scope, action);
+			Log.D("VS build begin {scope}, {action}", scope, action);
+
+			prepareForVSBuild();
+		}
+
+		void prepareForVSBuild()
+		{
+			_buildAgain = false;
+			_backgroundBuild.cancelAndWait();
 		}
 
 		public void onBuildDone(vsBuildScope scope, vsBuildAction action)
 		{
 			dumpState();
-			Log.D("build done {scope}, {action}", scope, action);
+			Log.D("VS build done {scope}, {action}", scope, action);
 
 			if (scope != vsBuildScope.vsBuildScopeSolution || action != vsBuildAction.vsBuildActionBuild)
 				return;
+
 			buildCompleted();
 		}
 
@@ -73,7 +82,7 @@ namespace BuildOnSave
 
 		void beginBuild()
 		{
-			if (!IsVSOrOurBuildRunning)
+			if (!IsVSOrBackgroundBuildRunning)
 			{
 				saveAllSolutionFiles();
 				beginBuild(_dte.Solution, BuildType);
@@ -143,9 +152,9 @@ namespace BuildOnSave
 			}
 		}
 
-		bool IsVSOrOurBuildRunning => IsVSBuildRunning || IsOurBuildRunning;
+		bool IsVSOrBackgroundBuildRunning => IsVSBuildRunning || IsBackgroundBuildRunning;
 		bool IsVSBuildRunning => _solution.IsOpen && _solution.SolutionBuild.BuildState == vsBuildState.vsBuildStateInProgress;
-		bool IsOurBuildRunning => _backgroundBuild.IsRunning;
+		bool IsBackgroundBuildRunning => _backgroundBuild.IsRunning;
 
 		void beginBuild(Solution solution, BuildType buildType)
 		{
