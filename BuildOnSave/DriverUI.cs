@@ -14,10 +14,19 @@ namespace BuildOnSave
 		readonly CommandBarButton _barButton_;
 		readonly StdPicture[] _statusImages =
 		{
-			imageToPicture(ImageBuilder.createStatusImage(VSColors.Notification.Warning)),
-			imageToPicture(ImageBuilder.createStatusImage(VSColors.Notification.Positive)),
-			imageToPicture(ImageBuilder.createStatusImage(VSColors.Notification.Negative))
+			imageToPicture(ImageBuilder.createStatusImage(VSColors.Notification.Warning, false)),
+			imageToPicture(ImageBuilder.createStatusImage(VSColors.Notification.Positive, false)),
+			imageToPicture(ImageBuilder.createStatusImage(VSColors.Notification.Negative, false))
 		};
+		readonly StdPicture[] _statusImagesProcessing =
+		{
+			imageToPicture(ImageBuilder.createStatusImage(VSColors.Notification.Warning, true)),
+			imageToPicture(ImageBuilder.createStatusImage(VSColors.Notification.Positive, true)),
+			imageToPicture(ImageBuilder.createStatusImage(VSColors.Notification.Negative, true))
+		};
+
+		BuildStatus _status = BuildStatus.Indeterminate;
+		bool _processing;
 
 		public DriverUI(DTE dte)
 		{
@@ -38,7 +47,7 @@ namespace BuildOnSave
 				Log.W("failed to add command button, no Standard command bar");
 			}
 
-			setBuildStatus(BuildStatus.Indeterminate);
+			updateUI();
 		}
 
 		public void Dispose()
@@ -46,21 +55,36 @@ namespace BuildOnSave
 			_barButton_?.Delete(true);
 		}
 
+
 		public void setBuildStatus(BuildStatus status)
+		{
+			_status = status;
+			_processing = false;
+			updateUI();
+		}
+
+		public void notifyBeginBuild()
+		{
+			_processing = true;
+			updateUI();
+		}
+
+		void updateUI()
 		{
 			if (_barButton_ == null)
 				return;
 
 			using (DevTools.measureBlock("setting image"))
-				_barButton_.Picture = getImageForBuildStatus(status);
+				_barButton_.Picture = getImage(_status, _processing);
 		}
 
-		StdPicture getImageForBuildStatus(BuildStatus status)
+		StdPicture getImage(BuildStatus status, bool processing)
 		{
+			var images = processing ? _statusImagesProcessing : _statusImages;
 			var statusAsInt = (int) status;
-			if (statusAsInt >= _statusImages.Length)
+			if (statusAsInt >= images.Length)
 				throw new ArgumentOutOfRangeException(nameof(status), status, null);
-			return _statusImages[statusAsInt];
+			return images[statusAsInt];
 		}
 
 		static StdPicture imageToPicture(Image image)

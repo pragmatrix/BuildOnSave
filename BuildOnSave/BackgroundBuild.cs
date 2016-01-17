@@ -186,15 +186,18 @@ namespace BuildOnSave
 				}))
 				{
 					var result = buildManager.BuildRequest(request.createData());
-					switch (result.OverallResult)
-					{
-						case BuildResultCode.Success:
-							status = BuildStatus.Ok;
-							break;
-						case BuildResultCode.Failure:
-							status = BuildStatus.Failed;
-							break;
-					}
+					if (cancellation.IsCancellationRequested)
+						status = BuildStatus.Indeterminate;
+					else
+						switch (result.OverallResult)
+						{
+							case BuildResultCode.Success:
+								status = BuildStatus.Ok;
+								break;
+							case BuildResultCode.Failure:
+								status = BuildStatus.Failed;
+								break;
+						}
 				}
 				buildManager.EndBuild();
 				return status;

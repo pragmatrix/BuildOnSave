@@ -64,6 +64,9 @@ namespace BuildOnSave
 
 		void prepareForVSBuild()
 		{
+			// immediately reflect in the UI that we are not wanted anymore!
+			_ui.setBuildStatus(BuildStatus.Indeterminate);
+
 			_buildAgain = false;
 			_backgroundBuild.cancelAndWait();
 		}
@@ -177,7 +180,7 @@ namespace BuildOnSave
 		{
 			dumpState();
 
-			_ui.setBuildStatus(BuildStatus.Indeterminate);
+			_ui.notifyBeginBuild();
 
 			switch (buildType)
 			{

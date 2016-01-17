@@ -9,7 +9,7 @@ namespace BuildOnSave
 		static readonly SizeF StatusImageSize = new SizeF(32,32);
 		const float StatusStrokeThickness = 2;
 
-		public static Image createStatusImage(Color fillColor)
+		public static Image createStatusImage(Color fillColor, bool processing)
 		{
 			var bm = new Bitmap((int)StatusImageSize.Width, (int)StatusImageSize.Height, PixelFormat.Format32bppArgb);
 			using (var graphics = Graphics.FromImage(bm))
@@ -18,8 +18,12 @@ namespace BuildOnSave
 
 				graphics.SmoothingMode = SmoothingMode.HighQuality;
 				graphics.TranslateTransform(-0.5f, -0.5f);
-				graphics.FillEllipse(new SolidBrush(fillColor), RectangleF.Inflate(baseRect, -StatusStrokeThickness/2, -StatusStrokeThickness/2));
-				graphics.DrawEllipse(new Pen(VSColors.Outline, StatusStrokeThickness), RectangleF.Inflate(baseRect, -StatusStrokeThickness/2, -StatusStrokeThickness/2));
+
+				graphics.FillEllipse(new SolidBrush(VSColors.Outline), baseRect);
+				graphics.FillEllipse(new SolidBrush(fillColor), RectangleF.Inflate(baseRect, -StatusStrokeThickness, -StatusStrokeThickness));
+
+				if (processing)
+					graphics.FillEllipse(new SolidBrush(VSColors.Outline), RectangleF.Inflate(baseRect, -StatusStrokeThickness*3, -StatusStrokeThickness*3));
 			}
 			return bm;
 		}
@@ -40,6 +44,9 @@ namespace BuildOnSave
 			public static readonly Color Positive = Color.FromArgb(0x33, 0x99, 0x33);
 			public static readonly Color Negative = Color.FromArgb(0xe5, 0x14, 0x00);
 			public static readonly Color Warning = Color.FromArgb(0xff, 0xcc, 0x00);
+			public static readonly Color Black = Color.FromArgb(0, 0, 0);
+			public static readonly Color White = Color.FromArgb(0xff, 0xff, 0xff);
+
 		}
 	}
 }
