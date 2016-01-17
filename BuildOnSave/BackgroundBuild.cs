@@ -173,12 +173,11 @@ namespace BuildOnSave
 
 		static BuildStatus buildCore(BuildRequest request, CancellationToken cancellation, BuildParameters parameters)
 		{
+			using (DevTools.measureBlock("build time"))
 			using (var buildManager = new BuildManager())
 			{
 				var status = BuildStatus.Failed;
 
-				var sw = new Stopwatch();
-				sw.Start();
 				buildManager.BeginBuild(parameters);
 				using (cancellation.Register(() =>
 				{
@@ -198,9 +197,6 @@ namespace BuildOnSave
 					}
 				}
 				buildManager.EndBuild();
-				var time = sw.Elapsed;
-				Log.D("build time: {@tm}", time);
-
 				return status;
 			}
 		}

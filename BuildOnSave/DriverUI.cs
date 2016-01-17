@@ -13,13 +13,17 @@ namespace BuildOnSave
 	sealed class DriverUI : IDisposable
 	{
 		readonly DTE _dte;
-		readonly ImageToPictureDispConverter _pictureConverter;
 		readonly CommandBarButton _barButton_;
+		readonly StdPicture[] _statusImages =
+		{
+			imageToPicture(ImageBuilder.createStatusImage(VSColors.Neutral)),
+			imageToPicture(ImageBuilder.createStatusImage(VSColors.Positive)),
+			imageToPicture(ImageBuilder.createStatusImage(VSColors.Negative))
+		};
 
 		public DriverUI(DTE dte)
 		{
 			_dte = dte;
-			_pictureConverter = new ImageToPictureDispConverter();
 
 			// http://stackoverflow.com/questions/12049362/programmatically-add-add-in-button-to-the-standard-toolbar
 			// add a toolbar button to the standard toolbar
@@ -42,35 +46,30 @@ namespace BuildOnSave
 		public void Dispose()
 		{
 			_barButton_?.Delete(true);
-			_pictureConverter.Dispose();
 		}
 
 		public void setBuildStatus(BuildStatus status)
 		{
 			if (_barButton_ == null)
 				return;
-			var assemblyDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-			var imageName = getImageNameForBuildStatus(status);
-			var imagePath = Path.Combine(assemblyDir, imageName);
-			var image = Image.FromFile(imagePath);
-			var picture = _pictureConverter.getIPicture(image);
-			_barButton_.Picture = picture;
+
+			using (DevTools.measureBlock("setting image"))
+				_barButton_.Picture = getImageForBuildStatus(status);
 		}
 
-		static string getImageNameForBuildStatus(BuildStatus status)
+		StdPicture getImageForBuildStatus(BuildStatus status)
 		{
-			switch (status)
-			{
-				case BuildStatus.Indeterminate:
-					return "status-indeterminate.png";
-				case BuildStatus.Ok:
-					return "status-green.png";
-				case BuildStatus.Failed:
-					return "status-red.png";
-				default:
-					throw new ArgumentOutOfRangeException(nameof(status), status, null);
-			}
+			var statusAsInt = (int) status;
+			if (statusAsInt >= _statusImages.Length)
+				throw new ArgumentOutOfRangeException(nameof(status), status, null);
+			return _statusImages[statusAsInt];
 		}
+
+		static StdPicture imageToPicture(Image image)
+		{
+			return PictureConverter.getIPicture(image);
+		}
+
 
 		// http://stackoverflow.com/questions/31324924/vs-2013-sdk-how-to-set-a-commandbarbutton-picture
 
@@ -84,5 +83,7 @@ namespace BuildOnSave
 				return (StdPicture) GetIPictureFromPicture(image);
 			}
 		}
+
+		static readonly ImageToPictureDispConverter PictureConverter = new ImageToPictureDispConverter();
 	}
 }
