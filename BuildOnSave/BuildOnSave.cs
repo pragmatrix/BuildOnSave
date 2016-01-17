@@ -130,7 +130,8 @@ namespace BuildOnSave
 				return;
 
 			var backgroundBuild = new BackgroundBuild(_dte, _outputPane);
-			var driver = new Driver(_dte, buildType, backgroundBuild);
+			var ui = new DriverUI(_dte, _outputPane);
+			var driver = new Driver(_dte, buildType, backgroundBuild, ui);
 
 			_documentEvents.DocumentSaved += driver.onDocumentSaved;
 

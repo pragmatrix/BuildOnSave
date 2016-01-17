@@ -19,18 +19,18 @@ namespace BuildOnSave
 		readonly Solution _solution;
 		public readonly BuildType BuildType;
 		readonly BackgroundBuild _backgroundBuild;
-		readonly SynchronizationContext _context;
 		readonly DriverUI _ui;
+		readonly SynchronizationContext _context;
 
-		public Driver(DTE dte, BuildType buildType, BackgroundBuild backgroundBuild)
+		public Driver(DTE dte, BuildType buildType, BackgroundBuild backgroundBuild, DriverUI ui)
 		{
 			_dte = dte;
 			_solution = _dte.Solution;
 			BuildType = buildType;
 			_backgroundBuild = backgroundBuild;
+			_ui = ui;
 			_context = SynchronizationContext.Current;
 
-			_ui = new DriverUI(dte);
 		}
 
 		public void Dispose()
