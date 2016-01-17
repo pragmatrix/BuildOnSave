@@ -64,7 +64,7 @@ namespace BuildOnSave
 		/// <param name="onCompleted"></param>
 		/// <param name="target_">The optional target to build</param>
 
-		public void beginBuild(Action onCompleted, string target_)
+		public void beginBuild(Action<BuildStatus> onCompleted, string target_)
 		{
 			if (IsRunning)
 			{
@@ -79,11 +79,11 @@ namespace BuildOnSave
 
 			_buildCancellation_ = new CancellationTokenSource();
 
-			Action completed = () =>
+			Action<BuildStatus> completed = status =>
 			{
 				_buildCancellation_.Dispose();
 				_buildCancellation_ = null;
-				onCompleted();
+				onCompleted(status);
 			};
 
 			ThreadPool.QueueUserWorkItem(_ => build(request, _buildCancellation_.Token, completed));
@@ -104,8 +104,10 @@ namespace BuildOnSave
 			}
 		}
 
-		void build(BuildRequest request, CancellationToken cancellation, Action onCompleted)
+		void build(BuildRequest request, CancellationToken cancellation, Action<BuildStatus> onCompleted)
 		{
+			var status = BuildStatus.Failed;
+
 			try
 			{
 				lock (_coreSyncRoot)
@@ -118,7 +120,7 @@ namespace BuildOnSave
 				// want to be sure to not start another build then.
 				cancellation.ThrowIfCancellationRequested();
 
-				buildCore(request, cancellation);
+				status = buildCore(request, cancellation);
 			}
 			catch (Exception e)
 			{
@@ -132,11 +134,11 @@ namespace BuildOnSave
 					Monitor.PulseAll(_coreSyncRoot);
 				}
 
-				_mainThread.Post(_ => onCompleted(), null);
+				_mainThread.Post(_ => onCompleted(status), null);
 			}
 		}
 
-		void buildCore(BuildRequest request, CancellationToken cancellation)
+		BuildStatus buildCore(BuildRequest request, CancellationToken cancellation)
 		{
 			coreToIDE(() =>
 			{
@@ -164,9 +166,17 @@ namespace BuildOnSave
 			};
 
 			printIntro(request);
+			var status = buildCore(request, cancellation, parameters);
+			printSummary(summaryLogger);
+			return status;
+		}
 
+		static BuildStatus buildCore(BuildRequest request, CancellationToken cancellation, BuildParameters parameters)
+		{
 			using (var buildManager = new BuildManager())
 			{
+				var status = BuildStatus.Failed;
+
 				var sw = new Stopwatch();
 				sw.Start();
 				buildManager.BeginBuild(parameters);
@@ -176,22 +186,29 @@ namespace BuildOnSave
 					buildManager.CancelAllSubmissions();
 				}))
 				{
-					buildManager.BuildRequest(request.createData());
+					var result = buildManager.BuildRequest(request.createData());
+					switch (result.OverallResult)
+					{
+						case BuildResultCode.Success:
+							status = BuildStatus.Ok;
+							break;
+						case BuildResultCode.Failure:
+							status = BuildStatus.Failed;
+							break;
+					}
 				}
 				buildManager.EndBuild();
 				var time = sw.Elapsed;
 				Log.D("build time: {@tm}", time);
-			}
 
-			printSummary(summaryLogger);
+				return status;
+			}
 		}
 
 		void printIntro(BuildRequest request)
 		{
 			var isSolution = request.Project_ == null;
-			var projectInfo = isSolution
-				? "Solution: " + getSolutionNameFromFilename(request.SolutionFilename)
-				: "Project: " + request.Project_;
+			var projectInfo = isSolution ? "Solution: " + getSolutionNameFromFilename(request.SolutionFilename) : "Project: " + request.Project_;
 			var configurationInfo = "Configuration: " + request.Configuration + " " + request.Platform;
 
 			coreToIDE(() => _pane.OutputString($"---------- BuildOnSave: {projectInfo}, {configurationInfo} ----------\n"));
@@ -199,16 +216,9 @@ namespace BuildOnSave
 
 		void printSummary(SummaryLogger logger)
 		{
-			var results = 
-				logger
-				.ProjectResults
-				.Where(result => !isSolutionFilename(result.Filename))
-				.ToArray();
+			var results = logger.ProjectResults.Where(result => !isSolutionFilename(result.Filename)).ToArray();
 
-			var projectResults =
-				results
-					.GroupBy(result => result.ProjectId)
-					.Select(rs => rs.Last());
+			var projectResults = results.GroupBy(result => result.ProjectId).Select(rs => rs.Last());
 
 			var succeded = projectResults.Count(result => result.Succeeded);
 			var failed = projectResults.Count(result => !result.Succeeded);
@@ -268,8 +278,7 @@ namespace BuildOnSave
 			}
 
 			public void Shutdown()
-			{
-			}
+			{}
 
 			public LoggerVerbosity Verbosity { get; set; }
 			public string Parameters { get; set; }

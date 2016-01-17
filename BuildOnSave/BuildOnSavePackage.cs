@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Linq.Expressions;
 using System.Runtime.InteropServices;
 using System.Text;
 using EnvDTE;
@@ -47,7 +48,17 @@ namespace BuildOnSave
 			_solutionEvents = _events.SolutionEvents;
 			_solutionEvents.Opened += solutionOpened;
 			_solutionEvents.AfterClosing += solutionClosed;
-			_buildOnSave_ = new BuildOnSave(this);
+
+			try
+			{
+				_buildOnSave_ = new BuildOnSave(this);
+			}
+			catch (Exception e)
+			{
+				Log.E(e, "setting up BuildOnSave failed");
+				throw;
+			}
+
 			base.Initialize();
 		}
 

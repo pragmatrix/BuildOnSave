@@ -1,8 +1,15 @@
 ﻿using System;
 using System.ComponentModel.Design;
+using System.Drawing;
+using System.IO;
+using System.Reflection;
+using System.Windows.Forms;
 using EnvDTE;
 using Microsoft.VisualStudio;
+using Microsoft.VisualStudio.CommandBars;
 using Microsoft.VisualStudio.Shell;
+using Microsoft.VisualStudio.Shell.Interop;
+using stdole;
 
 namespace BuildOnSave
 {
@@ -61,7 +68,6 @@ namespace BuildOnSave
 			_outputPane = outputWindow.OutputWindowPanes.Add("BuildOnSave");
 
 			_topMenu.Visible = true;
-
 			_solutionOptions = DefaultOptions;
 
 			Log.I("BuildOnSave initialized");
@@ -153,6 +159,7 @@ namespace BuildOnSave
 			_buildSolutionEvent.BeforeExecute -= driver.onBeforeBuildSolutionCommand;
 			_buildSolutionEvent.AfterExecute -= driver.onAfterBuildSolutionCommand;
 
+			_driver_.Dispose();
 			_driver_ = null;
 
 			Log.D("driver disconnected");

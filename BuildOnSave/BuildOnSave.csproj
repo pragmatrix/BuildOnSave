@@ -54,6 +54,7 @@
     <Compile Include="BuildOnSave.cs" />
     <Compile Include="BuildOnSavePackage.cs" />
     <Compile Include="Driver.cs" />
+    <Compile Include="DriverUI.cs" />
     <Compile Include="DTEExtensions.cs" />
     <Compile Include="Log.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -67,6 +68,18 @@
     </None>
   </ItemGroup>
   <ItemGroup>
+    <Content Include="status-green.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <IncludeInVSIX>true</IncludeInVSIX>
+    </Content>
+    <Content Include="status-red.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <IncludeInVSIX>true</IncludeInVSIX>
+    </Content>
+    <Content Include="status-indeterminate.png">
+      <IncludeInVSIX>true</IncludeInVSIX>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <VSCTCompile Include="BuildOnSavePackage.vsct">
       <ResourceName>Menus.ctmenu</ResourceName>
       <SubType>Designer</SubType>

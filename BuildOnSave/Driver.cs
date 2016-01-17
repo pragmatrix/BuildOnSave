@@ -1,19 +1,26 @@
 ﻿using System;
 using System.IO;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using EnvDTE;
 
 namespace BuildOnSave
 {
-	sealed class Driver
+	enum BuildStatus
+	{
+		Indeterminate,
+		Ok,
+		Failed
+	}
+
+	sealed class Driver : IDisposable
 	{
 		readonly DTE _dte;
 		readonly Solution _solution;
 		public readonly BuildType BuildType;
 		readonly BackgroundBuild _backgroundBuild;
 		readonly SynchronizationContext _context;
+		readonly DriverUI _ui;
 
 		public Driver(DTE dte, BuildType buildType, BackgroundBuild backgroundBuild)
 		{
@@ -22,6 +29,13 @@ namespace BuildOnSave
 			BuildType = buildType;
 			_backgroundBuild = backgroundBuild;
 			_context = SynchronizationContext.Current;
+
+			_ui = new DriverUI(dte);
+		}
+
+		public void Dispose()
+		{
+			_ui.Dispose();
 		}
 
 		// state
@@ -59,10 +73,13 @@ namespace BuildOnSave
 			dumpState();
 			Log.D("VS build done {scope}, {action}", scope, action);
 
-			if (scope != vsBuildScope.vsBuildScopeSolution || action != vsBuildAction.vsBuildActionBuild)
+			if ((scope != vsBuildScope.vsBuildScopeSolution && scope != vsBuildScope.vsBuildScopeProject) || action != vsBuildAction.vsBuildActionBuild)
 				return;
 
-			buildCompleted();
+			// note: we can not retrieve the build status for the VS build right now, more info here:
+			// http://stackoverflow.com/questions/2801985/how-to-get-notification-when-a-successful-build-has-finished
+
+			buildCompleted(BuildStatus.Indeterminate);
 		}
 
 		public void onDocumentSaved(Document document)
@@ -160,6 +177,8 @@ namespace BuildOnSave
 		{
 			dumpState();
 
+			_ui.setBuildStatus(BuildStatus.Indeterminate);
+
 			switch (buildType)
 			{
 				case BuildType.Solution:
@@ -173,10 +192,13 @@ namespace BuildOnSave
 			}
 		}
 
-		void buildCompleted()
+		void buildCompleted(BuildStatus status)
 		{
 			if (!_buildAgain)
+			{
+				_ui.setBuildStatus(status);
 				return;
+			}
 			_buildAgain = false;
 			schedule(beginBuild);
 		}
