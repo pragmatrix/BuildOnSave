@@ -11,6 +11,7 @@ namespace BuildOnSave
 	sealed class DriverUI : IDisposable
 	{
 		readonly DTE _dte;
+		readonly Window _outputWindow;
 		readonly OutputWindowPane _pane;
 		readonly CommandBarButton _barButton_;
 		readonly StdPicture[] _statusImages =
@@ -29,9 +30,10 @@ namespace BuildOnSave
 		BuildStatus _status = BuildStatus.Indeterminate;
 		bool _processing;
 
-		public DriverUI(DTE dte, OutputWindowPane pane)
+		public DriverUI(DTE dte, Window outputWindow, OutputWindowPane pane)
 		{
 			_dte = dte;
+			_outputWindow = outputWindow;
 			_pane = pane;
 
 			// http://stackoverflow.com/questions/12049362/programmatically-add-add-in-button-to-the-standard-toolbar
@@ -45,7 +47,13 @@ namespace BuildOnSave
 				control.TooltipText = controlInfo;
 				control.Caption = controlInfo;
 				control.BeginGroup = true;
-				control.Click += (CommandBarButton ctrl, ref bool d) => { pane.Activate(); };
+				control.Click += (CommandBarButton ctrl, ref bool d) =>
+				{
+					// side effect: setting visible to true focuses the output window!
+					if (!_outputWindow.Visible)
+						_outputWindow.Visible = true;
+					pane.Activate();
+				};
 				_barButton_ = control;
 			}
 			else

@@ -5,6 +5,7 @@ using System.IO;
 using System.Reflection;
 using System.Windows.Forms;
 using EnvDTE;
+using EnvDTE80;
 using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.CommandBars;
 using Microsoft.VisualStudio.Shell;
@@ -27,6 +28,7 @@ namespace BuildOnSave
 		readonly MenuCommand _buildTypeSolution;
 		readonly MenuCommand _buildTypeStartupProject;
 
+		readonly Window _outputWindow;
 		readonly OutputWindowPane _outputPane;
 
 		// stored to prevent GC from collecting
@@ -64,8 +66,8 @@ namespace BuildOnSave
 
 			// create the output pane.
 
-			var outputWindow = (OutputWindow)_dte.Windows.Item(EnvDTE.Constants.vsWindowKindOutput).Object;
-			_outputPane = outputWindow.OutputWindowPanes.Add("BuildOnSave");
+			_outputWindow = _dte.Windows.Item(EnvDTE.Constants.vsWindowKindOutput);
+			_outputPane = ((OutputWindow)_outputWindow.Object).OutputWindowPanes.Add("BuildOnSave");
 
 			_topMenu.Visible = true;
 			_solutionOptions = DefaultOptions;
@@ -130,7 +132,7 @@ namespace BuildOnSave
 				return;
 
 			var backgroundBuild = new BackgroundBuild(_dte, _outputPane);
-			var ui = new DriverUI(_dte, _outputPane);
+			var ui = new DriverUI(_dte, _outputWindow, _outputPane);
 			var driver = new Driver(_dte, buildType, backgroundBuild, ui);
 
 			_documentEvents.DocumentSaved += driver.onDocumentSaved;
