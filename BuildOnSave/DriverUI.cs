@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Drawing;
-using System.IO;
-using System.Reflection;
 using System.Windows.Forms;
 using EnvDTE;
 using Microsoft.VisualStudio.CommandBars;
@@ -16,9 +14,9 @@ namespace BuildOnSave
 		readonly CommandBarButton _barButton_;
 		readonly StdPicture[] _statusImages =
 		{
-			imageToPicture(ImageBuilder.createStatusImage(VSColors.Neutral)),
-			imageToPicture(ImageBuilder.createStatusImage(VSColors.Positive)),
-			imageToPicture(ImageBuilder.createStatusImage(VSColors.Negative))
+			imageToPicture(ImageBuilder.createStatusImage(VSColors.Notification.Warning)),
+			imageToPicture(ImageBuilder.createStatusImage(VSColors.Notification.Positive)),
+			imageToPicture(ImageBuilder.createStatusImage(VSColors.Notification.Negative))
 		};
 
 		public DriverUI(DTE dte)

@@ -33,5 +33,13 @@ namespace BuildOnSave
 		public static readonly Color Neutral = Color.FromArgb(0x00, 0x53, 0x9c);
 		public static readonly Color Create = Color.FromArgb(0xc2, 0x7d, 0x1a);
 		public static readonly Color Outline = Color.FromArgb(0xf6, 0xf6, 0xf6);
+
+		public static class Notification
+		{
+			public static readonly Color Neutral = Color.FromArgb(0x1b, 0xa1, 0xe2);
+			public static readonly Color Positive = Color.FromArgb(0x33, 0x99, 0x33);
+			public static readonly Color Negative = Color.FromArgb(0xe5, 0x14, 0x00);
+			public static readonly Color Warning = Color.FromArgb(0xff, 0xcc, 0x00);
+		}
 	}
 }
