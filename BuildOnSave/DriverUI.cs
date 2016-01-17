@@ -49,9 +49,7 @@ namespace BuildOnSave
 				control.BeginGroup = true;
 				control.Click += (CommandBarButton ctrl, ref bool d) =>
 				{
-					// side effect: setting visible to true focuses the output window!
-					if (!_outputWindow.Visible)
-						_outputWindow.Visible = true;
+					_outputWindow.Visible = true;
 					pane.Activate();
 				};
 				_barButton_ = control;
