@@ -39,7 +39,10 @@ namespace BuildOnSave
 			{
 				var control = (CommandBarButton)bar.Controls.Add(MsoControlType.msoControlButton, Type.Missing, Type.Missing, Type.Missing, true);
 				control.Style = MsoButtonStyle.msoButtonIcon;
-				control.TooltipText = "BuildOnSave Status";
+				var controlInfo = "BuildOnSave Status";
+				control.TooltipText = controlInfo;
+				control.Caption = controlInfo;
+				control.BeginGroup = true;
 				_barButton_ = control;
 			}
 			else
