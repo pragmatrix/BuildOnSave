@@ -89,16 +89,6 @@
 			</Button>
 
 		</Buttons>
-
-		<!--The bitmaps section is used to define the bitmaps that are used for the commands.-->
-		<!-- <Bitmaps> -->
-			<!--  The bitmap id is defined in a way that is a little bit different from the others:
-						the declaration starts with a guid for the bitmap strip, then there is the resource id of the
-						bitmap strip containing the bitmaps and then there are the numeric ids of the elements used
-						inside a button definition. An important aspect of this declaration is that the element id
-						must be the actual index (1-based) of the bitmap inside the bitmap strip. -->
-			<!-- <Bitmap guid="guidImages" href="Resources\BuildOnSaveCommand.png" usedList="bmpPic1, bmpPic2, bmpPicSearch, bmpPicX, bmpPicArrows, bmpPicStrikethrough"/>
-		</Bitmaps> -->
 	</Commands>
 
 	<Symbols>
@@ -116,16 +106,5 @@
 			<IDSymbol name="BuildOnSaveTopLevelMenu" value="0x1021"/>
 			<IDSymbol name="BuildOnSaveMenuTargetGroup" value="0x1022" />
 		</GuidSymbol>
-
-		<!--
-		<GuidSymbol name="guidImages" value="{b7f1062b-87fe-46ff-8186-5bb17f2bc81b}" >
-			<IDSymbol name="bmpPic1" value="1" />
-			<IDSymbol name="bmpPic2" value="2" />
-			<IDSymbol name="bmpPicSearch" value="3" />
-			<IDSymbol name="bmpPicX" value="4" />
-			<IDSymbol name="bmpPicArrows" value="5" />
-			<IDSymbol name="bmpPicStrikethrough" value="6" />
-		</GuidSymbol>
-		-->
 	</Symbols>
 </CommandTable>
