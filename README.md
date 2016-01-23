@@ -12,6 +12,7 @@ Features:
 
 - There is a menu named BuildOnSave in the Visual Studio menu bar with options to disable BuildOnSave, build the whole solution in its active configuration, or the startup project only. The options are stored per solution.
 - An output "pane" is registered for BuildOnSave and activates as soon a build starts. 
+- An icon is added to the Standard toolbar that shows the build status for background builds. red: build failed, yellow: build is indeterminate, and green: ready to go.  Clicking the icon opens the BuildOnSave output pane.
 
 ## Download & Installation
 
