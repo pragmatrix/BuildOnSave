@@ -51,8 +51,34 @@ namespace BuildOnSave
 			public BuildRequestData createData()
 			{
 				var globalProperties = new Dictionary<string, string> { ["Configuration"] = Configuration, ["Platform"] = Platform };
-				var targets = Project_ != null ? new[] { Project_ } : new string[0];
+				var targets = Project_ != null ? new[] { dotAndSpecialCharactersToUnderscore(Project_) } : new string[0];
 				return new BuildRequestData(SolutionFilename, globalProperties, "14.0", targets, null);
+			}
+
+
+			// https://msdn.microsoft.com/en-us/library/ms228186.aspx
+			static string dotAndSpecialCharactersToUnderscore(string esc)
+			{
+				var characters = esc.Select(c =>
+					{
+						switch (c)
+						{
+							case '.':
+
+							case '%':
+							case '$':
+							case '@':
+							case '\'':
+							case ';':
+							case '?':
+							case '*':
+								return '_';
+							default:
+								return c;
+						}
+
+					}).ToArray();
+				return new string(characters);
 			}
 		}
 
