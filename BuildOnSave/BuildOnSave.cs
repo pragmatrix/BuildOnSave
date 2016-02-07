@@ -1,16 +1,8 @@
 ﻿using System;
 using System.ComponentModel.Design;
-using System.Drawing;
-using System.IO;
-using System.Reflection;
-using System.Windows.Forms;
 using EnvDTE;
-using EnvDTE80;
 using Microsoft.VisualStudio;
-using Microsoft.VisualStudio.CommandBars;
 using Microsoft.VisualStudio.Shell;
-using Microsoft.VisualStudio.Shell.Interop;
-using stdole;
 
 namespace BuildOnSave
 {
