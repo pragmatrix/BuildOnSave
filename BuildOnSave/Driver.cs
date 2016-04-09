@@ -104,7 +104,7 @@ namespace BuildOnSave
 		{
 			if (!IsVSOrBackgroundBuildRunning)
 			{
-				saveAllSolutionFiles();
+				saveSolutionFiles();
 				beginBuild(_dte.Solution, BuildType);
 			}
 			else
@@ -113,7 +113,7 @@ namespace BuildOnSave
 			}
 		}
 
-		void saveAllSolutionFiles()
+		void saveSolutionFiles()
 		{
 			try
 			{
