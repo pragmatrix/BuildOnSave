@@ -118,8 +118,8 @@ namespace BuildOnSave
 			try
 			{
 				_ignoreDocumentSaves = true;
-				saveAllOpenDocumentsBelongingToAProject();
-				saveAllOpenProjects();
+				saveOpenDocumentsBelongingToAProject();
+				saveOpenProjects();
 				saveSolution();
 			}
 			catch (Exception e)
@@ -132,7 +132,7 @@ namespace BuildOnSave
 			}
 		}
 
-		void saveAllOpenDocumentsBelongingToAProject()
+		void saveOpenDocumentsBelongingToAProject()
 		{
 			// note:
 			// _dte.Documents.SaveAll();
@@ -151,7 +151,7 @@ namespace BuildOnSave
 			}
 		}
 
-		void saveAllOpenProjects()
+		void saveOpenProjects()
 		{
 			foreach (Project project in _dte.Solution.Projects)
 			{
