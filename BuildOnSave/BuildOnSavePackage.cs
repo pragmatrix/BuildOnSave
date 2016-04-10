@@ -1,6 +1,5 @@
 ﻿using System;
 using System.IO;
-using System.Linq.Expressions;
 using System.Runtime.InteropServices;
 using System.Text;
 using EnvDTE;
@@ -78,6 +77,7 @@ namespace BuildOnSave
 		{
 			if (key != KeySolutionSettings)
 				return;
+
 			if (_buildOnSave_ == null)
 			{
 				Log.E("can not handle OnLoadOptions, we are not initialized yet");
@@ -101,6 +101,7 @@ namespace BuildOnSave
 		{
 			if (key != KeySolutionSettings)
 				return;
+
 			if (_buildOnSave_ == null)
 			{
 				Log.E("can not handle OnSaveOptions, we are not initialized yet");
