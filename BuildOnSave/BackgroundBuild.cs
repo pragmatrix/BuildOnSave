@@ -35,23 +35,23 @@ namespace BuildOnSave
 
 		struct BuildRequest
 		{
-			public BuildRequest(string solutionFilename, string project, string configuration, string platform)
+			public BuildRequest(string solutionFilename, string[] targets, string configuration, string platform)
 			{
 				SolutionFilename = solutionFilename;
-				Project_ = project;
+				Targets = targets;
 				Configuration = configuration;
 				Platform = platform;
 			}
 
 			public readonly string SolutionFilename;
-			public readonly string Project_;
+			public readonly string[] Targets;
 			public readonly string Configuration;
 			public readonly string Platform;
 
 			public BuildRequestData createData()
 			{
 				var globalProperties = new Dictionary<string, string> { ["Configuration"] = Configuration, ["Platform"] = Platform };
-				var targets = Project_ != null ? new[] { dotAndSpecialCharactersToUnderscore(Project_) } : new string[0];
+				var targets = Targets.Select(dotAndSpecialCharactersToUnderscore).ToArray();
 				return new BuildRequestData(SolutionFilename, globalProperties, "14.0", targets, null);
 			}
 
@@ -86,9 +86,9 @@ namespace BuildOnSave
 		/// Asynchronously begins a background build.
 		/// </summary>
 		/// <param name="onCompleted"></param>
-		/// <param name="target_">The optional target to build</param>
+		/// <param name="targets">The targets to build. If this array is empty, the whole solution is built.</param>
 
-		public void beginBuild(Action<BuildStatus> onCompleted, string target_)
+		public void beginBuild(Action<BuildStatus> onCompleted, params string[] targets)
 		{
 			if (IsRunning)
 			{
@@ -96,11 +96,10 @@ namespace BuildOnSave
 				return;
 			}
 
-			var solution = (Solution2)_dte.Solution;
-			var configuration = (SolutionConfiguration2)solution.SolutionBuild.ActiveConfiguration;
+			var solution = (Solution2) _dte.Solution;
+			var configuration = (SolutionConfiguration2) solution.SolutionBuild.ActiveConfiguration;
 			var solutionFilename = solution.FullName;
-			var request = new BuildRequest(solutionFilename, target_, configuration.Name, configuration.PlatformName);
-
+			var request = new BuildRequest(solutionFilename, targets, configuration.Name, configuration.PlatformName);
 			_buildCancellation_ = new CancellationTokenSource();
 
 			Action<BuildStatus> completed = status =>
@@ -200,8 +199,8 @@ namespace BuildOnSave
 			using (DevTools.measureBlock("build time"))
 			using (var buildManager = new BuildManager())
 			{
-				var status = BuildStatus.Failed;
-
+				BuildStatus status;
+				
 				buildManager.BeginBuild(parameters);
 				using (cancellation.Register(() =>
 				{
@@ -213,6 +212,7 @@ namespace BuildOnSave
 					if (cancellation.IsCancellationRequested)
 						status = BuildStatus.Indeterminate;
 					else
+					{
 						switch (result.OverallResult)
 						{
 							case BuildResultCode.Success:
@@ -221,7 +221,10 @@ namespace BuildOnSave
 							case BuildResultCode.Failure:
 								status = BuildStatus.Failed;
 								break;
+							default:
+								throw new ArgumentOutOfRangeException();
 						}
+					}
 				}
 				buildManager.EndBuild();
 				return status;
@@ -230,8 +233,12 @@ namespace BuildOnSave
 
 		void printIntro(BuildRequest request)
 		{
-			var isSolution = request.Project_ == null;
-			var projectInfo = isSolution ? "Solution: " + getSolutionNameFromFilename(request.SolutionFilename) : "Project: " + request.Project_;
+			var isSolution = request.Targets.Length == 0;
+			var projectInfo = isSolution ? 
+				"Solution: " + getSolutionNameFromFilename(request.SolutionFilename) 
+				: (request.Targets.Length == 1 
+					? ("Project: " + request.Targets[0]) 
+					: ("Projects: " + request.Targets.Aggregate((a, b) => a + ";" + b)));
 			var configurationInfo = "Configuration: " + request.Configuration + " " + request.Platform;
 
 			coreToIDE(() => _pane.OutputString($"---------- BuildOnSave: {projectInfo}, {configurationInfo} ----------\n"));

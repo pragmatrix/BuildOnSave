@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using EnvDTE;
@@ -21,6 +23,7 @@ namespace BuildOnSave
 		readonly BackgroundBuild _backgroundBuild;
 		readonly DriverUI _ui;
 		readonly SynchronizationContext _context;
+		readonly SavedDocumentsTracker _savedDocuments = new SavedDocumentsTracker();
 
 		public Driver(DTE dte, BuildType buildType, BackgroundBuild backgroundBuild, DriverUI ui)
 		{
@@ -30,7 +33,6 @@ namespace BuildOnSave
 			_backgroundBuild = backgroundBuild;
 			_ui = ui;
 			_context = SynchronizationContext.Current;
-
 		}
 
 		public void Dispose()
@@ -91,6 +93,7 @@ namespace BuildOnSave
 
 			if (_ignoreDocumentSaves || !document.belongsToAnOpenProject())
 				return;
+			_savedDocuments.track(document);
 			Log.D("document saved {path}:", document.FullName);
 			schedule(beginBuild);
 		}
@@ -104,6 +107,20 @@ namespace BuildOnSave
 		{
 			if (!IsVSOrBackgroundBuildRunning)
 			{
+				var savedDocuments = _savedDocuments.takeAll();
+
+				var projectsChangedBeforeBuild =
+					savedDocuments
+						// note: this looks redundant, but it isn't: because only documents that belong to a project are added to _savedDocuments does
+						// not mean that they have not removed from a project in the meantime (though this is probaby very unlikely)
+						.Where(document => document.belongsToAnOpenProject())
+						.Select(document => document.ProjectItem.ContainingProject)
+						.Distinct();
+
+				var projectsChanged =
+					projectsChangedBeforeBuild.Concat(
+						projectsThatHaveChangedFilesAfterSaving()).Distinct();
+
 				saveSolutionFiles();
 				beginBuild(_dte.Solution, BuildType);
 			}
@@ -132,6 +149,18 @@ namespace BuildOnSave
 			}
 		}
 
+		IEnumerable<Project> projectsThatHaveChangedFilesAfterSaving()
+		{
+			var projectsOfUnsavedDocuments =
+				_dte.unsavedDocumentsBelongingToAProject()
+				.Select(document => document.ProjectItem.ContainingProject);
+
+			var unsavedProjects =
+				_dte.unsavedOpenProjects();
+
+			return projectsOfUnsavedDocuments.Concat(unsavedProjects).Distinct();
+		}
+
 		void saveOpenDocumentsBelongingToAProject()
 		{
 			// note:
@@ -142,34 +171,31 @@ namespace BuildOnSave
 			// then, when the file is saved, this project page comes up and somehone screws everything up. Probably related to 
 			// the combination of Extensions I've installed (reproduced in the SharedSafe project).
 
-			foreach (Document document in _dte.Documents)
-			{
-				if (document.Saved || !document.belongsToAnOpenProject())
-					continue;
-				Log.D("document {name} is not saved, saving now", document.Name);
-				document.Save();
-			}
+			_dte.unsavedDocumentsBelongingToAProject()
+				.ForEach(document =>
+				{
+					Log.D("document {name} is not saved, saving now", document.Name);
+					document.Save();
+				});
 		}
+
 
 		void saveOpenProjects()
 		{
-			foreach (Project project in _dte.Solution.Projects)
-			{
-				if (!project.Saved)
+			_dte.unsavedOpenProjects()
+				.ForEach(project =>
 				{
 					Log.D("project {name} is not saved, saving now", project.Name);
 					project.Save();
-				}
-			}
+				});
 		}
 
 		void saveSolution()
 		{
-			if (!_solution.Saved)
-			{
-				Log.D("solution is not saved, saving now");
-				_solution.SaveAs(_dte.Solution.FullName);
-			}
+			if (_solution.Saved)
+				return;
+			Log.D("solution is not saved, saving now");
+			_solution.SaveAs(_dte.Solution.FullName);
 		}
 
 		bool IsVSOrBackgroundBuildRunning => IsVSBuildRunning || IsBackgroundBuildRunning;
@@ -185,7 +211,7 @@ namespace BuildOnSave
 			switch (buildType)
 			{
 				case BuildType.Solution:
-					_backgroundBuild.beginBuild(buildCompleted, null);
+					_backgroundBuild.beginBuild(buildCompleted);
 					break;
 				case BuildType.StartupProject:
 					var startupProject = (string)((object[])solution.SolutionBuild.StartupProjects)[0];
@@ -209,6 +235,23 @@ namespace BuildOnSave
 		void dumpState([CallerMemberName] string context = "")
 		{
 			Log.D("{context}: state: {state}, again: {again}, thread: {thread}", context, _dte.Solution.SolutionBuild.BuildState, _buildAgain, System.Threading.Thread.CurrentThread.ManagedThreadId);
+		}
+	}
+
+	/// This is here to track saved documents, so that we can build a list of projects which may have changed and need to rebuild in BuildType.ChangedProjects
+	sealed class SavedDocumentsTracker
+	{
+		readonly List<Document> _documents = new List<Document>();
+		public void track(Document document)
+		{
+			_documents.Add(document);
+		}
+
+		public IEnumerable<Document> takeAll()
+		{
+			var documents = _documents.ToArray();
+			_documents.Clear();
+			return documents;
 		}
 	}
 }

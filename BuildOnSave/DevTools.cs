@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Diagnostics;
 
 namespace BuildOnSave
@@ -37,5 +39,13 @@ namespace BuildOnSave
 		}
 
 		static readonly IDisposable NullDisposeAction = new DisposeAction(() => { });
+
+		public static void ForEach<ElementT>(this IEnumerable<ElementT> sequence, Action<ElementT> action)
+		{
+			foreach (var element in sequence)
+			{
+				action(element);
+			}
+		}
 	}
 }
