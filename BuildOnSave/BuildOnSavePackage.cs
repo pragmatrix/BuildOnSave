@@ -22,9 +22,13 @@ namespace BuildOnSave
 		const string PackageGuidString = "ce5fb4cb-f9c4-469e-ac59-647eb754148c";
 		BuildOnSave _buildOnSave_;
 
-		const string SettingsVersionCode = "1";
-		const string KeySolutionSettings = "BuildOnSave_" + SettingsVersionCode;
+		// Settings history
+		// 1: 
+		// 2: BuildType enum got extended by ProjectsOfSavedFiles
 
+		const string KeySolutionSettings1 = "BuildOnSave_1";
+		const string KeySolutionSettings = "BuildOnSave_2";
+		
 		// Initialize()
 		DTE _dte;
 		Events _events;
@@ -32,6 +36,7 @@ namespace BuildOnSave
 
 		public BuildOnSavePackage()
 		{
+			AddOptionKey(KeySolutionSettings1);
 			AddOptionKey(KeySolutionSettings);
 		}
 
@@ -75,7 +80,7 @@ namespace BuildOnSave
 
 		protected override void OnLoadOptions(string key, Stream stream)
 		{
-			if (key != KeySolutionSettings)
+			if (key != KeySolutionSettings && key != KeySolutionSettings1)
 				return;
 
 			if (_buildOnSave_ == null)
@@ -84,9 +89,16 @@ namespace BuildOnSave
 				return;
 			}
 
+			Log.D("loading options for key: {key}", key);
+
 			try
 			{
 				var serialized = streamToString(stream);
+				if (serialized == "" && key != KeySolutionSettings)
+				{
+					Log.D("ignored key {key} without data in OnLoadOptions", key);
+					return;
+				}
 				Log.D("deserializing and applying solution options {options}", serialized);
 				var options = JsonConvert.DeserializeObject<SolutionOptions>(serialized);
 				_buildOnSave_.SolutionOptions = options;

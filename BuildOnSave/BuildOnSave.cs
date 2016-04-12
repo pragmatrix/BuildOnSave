@@ -12,6 +12,7 @@ namespace BuildOnSave
 		const int TopMenuCommandId = 0x1021;
 		const int BuildTypeSolutionCommandId = 0x101;
 		const int BuildTypeStartupProjectCommandId = 0x102;
+		const int BuildTypeProjectsOfSavedFilesCommandId = 0x103;
 		static readonly Guid CommandSet = new Guid("e2f191eb-1c5a-4d3c-adfb-d5b14dc47078");
 
 		readonly DTE _dte;
@@ -19,6 +20,7 @@ namespace BuildOnSave
 		readonly MenuCommand _menuItem;
 		readonly MenuCommand _buildTypeSolution;
 		readonly MenuCommand _buildTypeStartupProject;
+		readonly MenuCommand _buildTypeProjectsOfSavedFiles;
 
 		readonly Window _outputWindow;
 		readonly OutputWindowPane _outputPane;
@@ -50,11 +52,12 @@ namespace BuildOnSave
 			_menuItem = new MenuCommand(enableDisableBuildOnSave, new CommandID(CommandSet, CommandId));
 			_buildTypeSolution = new MenuCommand(setBuildTypeToSolution, new CommandID(CommandSet, BuildTypeSolutionCommandId));
 			_buildTypeStartupProject = new MenuCommand(setBuildTypeToStartupProject, new CommandID(CommandSet, BuildTypeStartupProjectCommandId));
-
+			_buildTypeProjectsOfSavedFiles = new MenuCommand(setBuildTypeToProjectsOfSavedFiles, new CommandID(CommandSet, BuildTypeProjectsOfSavedFilesCommandId));
 			commandService.AddCommand(_topMenu);
 			commandService.AddCommand(_menuItem);
 			commandService.AddCommand(_buildTypeSolution);
 			commandService.AddCommand(_buildTypeStartupProject);
+			commandService.AddCommand(_buildTypeProjectsOfSavedFiles);
 
 			// create the output pane.
 
@@ -71,13 +74,22 @@ namespace BuildOnSave
 
 		void setBuildTypeToSolution(object sender, EventArgs e)
 		{
-			_solutionOptions.BuildType = BuildType.Solution;
-			syncOptions(_solutionOptions);
+			setBuildTypeTo(BuildType.Solution);
 		}
 
 		void setBuildTypeToStartupProject(object sender, EventArgs e)
 		{
-			_solutionOptions.BuildType = BuildType.StartupProject;
+			setBuildTypeTo(BuildType.StartupProject);
+		}
+
+		void setBuildTypeToProjectsOfSavedFiles(object sender, EventArgs e)
+		{
+			setBuildTypeTo(BuildType.ProjectsOfSavedFiles);
+		}
+
+		void setBuildTypeTo(BuildType buildType)
+		{
+			_solutionOptions.BuildType = buildType;
 			syncOptions(_solutionOptions);
 		}
 
@@ -116,6 +128,8 @@ namespace BuildOnSave
 			_buildTypeSolution.Enabled = _driver_ != null;
 			_buildTypeStartupProject.Checked = options.BuildType == BuildType.StartupProject;
 			_buildTypeStartupProject.Enabled = _driver_ != null;
+			_buildTypeProjectsOfSavedFiles.Checked = options.BuildType == BuildType.ProjectsOfSavedFiles;
+			_buildTypeProjectsOfSavedFiles.Enabled = _driver_ != null;
 		}
 
 		void connectDriver(BuildType buildType)

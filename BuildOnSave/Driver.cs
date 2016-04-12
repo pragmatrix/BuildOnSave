@@ -119,10 +119,10 @@ namespace BuildOnSave
 
 				var projectsChanged =
 					projectsChangedBeforeBuild.Concat(
-						projectsThatHaveChangedFilesAfterSaving()).Distinct();
+						projectsThatHaveChangedFilesAfterSaving()).Distinct().ToArray();
 
 				saveSolutionFiles();
-				beginBuild(_dte.Solution, BuildType);
+				beginBuild(_dte.Solution, BuildType, projectsChanged);
 			}
 			else
 			{
@@ -202,7 +202,7 @@ namespace BuildOnSave
 		bool IsVSBuildRunning => _solution.IsOpen && _solution.SolutionBuild.BuildState == vsBuildState.vsBuildStateInProgress;
 		bool IsBackgroundBuildRunning => _backgroundBuild.IsRunning;
 
-		void beginBuild(Solution solution, BuildType buildType)
+		void beginBuild(Solution solution, BuildType buildType, IEnumerable<Project> projects)
 		{
 			dumpState();
 
@@ -217,6 +217,10 @@ namespace BuildOnSave
 					var startupProject = (string)((object[])solution.SolutionBuild.StartupProjects)[0];
 					var startupProjectName = Path.GetFileNameWithoutExtension(startupProject);
 					_backgroundBuild.beginBuild(buildCompleted, startupProjectName);
+					break;
+				case BuildType.ProjectsOfSavedFiles:
+					var changedProjects = projects.Select(p => p.Name);
+					_backgroundBuild.beginBuild(buildCompleted, changedProjects.ToArray());
 					break;
 			}
 		}
@@ -238,7 +242,7 @@ namespace BuildOnSave
 		}
 	}
 
-	/// This is here to track saved documents, so that we can build a list of projects which may have changed and need to rebuild in BuildType.ChangedProjects
+	/// This is here to track saved documents, so that we can build a list of projects which may have changed and need to rebuild in BuildType.ProjectsOfSavedFiles
 	sealed class SavedDocumentsTracker
 	{
 		readonly List<Document> _documents = new List<Document>();

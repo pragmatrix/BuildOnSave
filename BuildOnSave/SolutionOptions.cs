@@ -1,9 +1,12 @@
-﻿namespace BuildOnSave
+﻿using System;
+
+namespace BuildOnSave
 {
 	enum BuildType
 	{
 		Solution,
-		StartupProject
+		StartupProject,
+		ProjectsOfSavedFiles
 	}
 
 	sealed class SolutionOptions
