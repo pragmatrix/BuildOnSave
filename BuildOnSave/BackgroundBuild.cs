@@ -72,6 +72,8 @@ namespace BuildOnSave
 							case ';':
 							case '?':
 							case '*':
+							case '(':
+							case ')':
 								return '_';
 							default:
 								return c;
