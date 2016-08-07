@@ -21,6 +21,7 @@ namespace BuildOnSave
 		readonly DTE _dte;
 		readonly OutputWindowPane _pane;
 		readonly SynchronizationContext _mainThread;
+		readonly BuildManager _buildManager;
 
 		// State as seen from the main thread.
 		CancellationTokenSource _buildCancellation_;
@@ -35,6 +36,13 @@ namespace BuildOnSave
 			_dte = dte;
 			_pane = pane;
 			_mainThread = SynchronizationContext.Current;
+			_buildManager = new BuildManager();
+		}
+
+		public void Dispose()
+		{
+			_buildManager.CancelAllSubmissions();
+			_buildManager.Dispose();
 		}
 
 		struct BuildRequest
@@ -147,7 +155,7 @@ namespace BuildOnSave
 					solutionSelectedInstances,
 					skippedInstances,
 					solution.FullName,
-					false,
+					true,
 					configuration.Name,
 					configuration.PlatformName);
 			}
@@ -167,7 +175,7 @@ namespace BuildOnSave
 				primaryProjects.Concat(dependenciesToBuild).ToArray(),
 				dependenciesToSkip,
 				solution.FullName,
-				true,
+				false,
 				configuration.Name,
 				configuration.PlatformName);
 		}
@@ -244,9 +252,9 @@ namespace BuildOnSave
 			var parameters = new BuildParameters
 			{
 				Loggers = new ILogger[] {consoleLogger, summaryLogger},
-				EnableNodeReuse = false,
-				ShutdownInProcNodeOnBuildFinish = true,
-				DetailedSummary = false
+				EnableNodeReuse = true,
+				ShutdownInProcNodeOnBuildFinish = false,
+				DetailedSummary = false,
 			};
 
 			printIntro(request);
@@ -258,12 +266,11 @@ namespace BuildOnSave
 		BuildStatus buildCore(BuildRequest request, CancellationToken cancellation, BuildParameters parameters)
 		{
 			using (measureBlock("build time"))
-			using (var buildManager = new BuildManager())
-			using (beginBuild(buildManager, parameters))
+			using (beginBuild(_buildManager, parameters))
 			using (cancellation.Register(() =>
 			{
 				Log.I("cancelling background build");
-				buildManager.CancelAllSubmissions();
+				_buildManager.CancelAllSubmissions();
 			}))
 			{
 				var projects = request.AllProjectsOrdered;
@@ -280,7 +287,7 @@ namespace BuildOnSave
 					}
 
 					var buildData = request.createBuildRequestData(project);
-					var result = buildManager.BuildRequest(buildData);
+					var result = _buildManager.BuildRequest(buildData);
 					switch (result.OverallResult)
 					{
 						case BuildResultCode.Success:
