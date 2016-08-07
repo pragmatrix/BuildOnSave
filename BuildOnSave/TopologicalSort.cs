@@ -10,12 +10,12 @@ namespace BuildOnSave
 
 		public static IEnumerable<NodeT> SortTopologically<NodeT>(this IEnumerable<NodeT> roots, Func<NodeT, IEnumerable<NodeT>> edges)
 		{
-			return TopologicallyReverse(roots, edges).Reverse();
+			return SortTopologicallyReverse(roots, edges).Reverse();
 		}
 
 		// returns roots last.
 
-		public static IEnumerable<NodeT> TopologicallyReverse<NodeT>(this IEnumerable<NodeT> roots, Func<NodeT, IEnumerable<NodeT>> edges)
+		public static IEnumerable<NodeT> SortTopologicallyReverse<NodeT>(this IEnumerable<NodeT> roots, Func<NodeT, IEnumerable<NodeT>> edges)
 		{
 			var res = new List<NodeT>();
 			var marked = new HashSet<NodeT>();
