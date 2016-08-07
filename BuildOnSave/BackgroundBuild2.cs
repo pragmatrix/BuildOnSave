@@ -147,7 +147,7 @@ namespace BuildOnSave
 					solutionSelectedInstances,
 					skippedInstances,
 					solution.FullName,
-					true,
+					false,
 					configuration.Name,
 					configuration.PlatformName);
 			}
