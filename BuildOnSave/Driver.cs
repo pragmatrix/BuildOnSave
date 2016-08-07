@@ -41,7 +41,6 @@ namespace BuildOnSave
 
 		public void Dispose()
 		{
-			_backgroundBuild.Dispose();
 			_ui.Dispose();
 		}
 

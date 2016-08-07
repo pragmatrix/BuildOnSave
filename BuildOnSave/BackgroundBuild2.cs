@@ -21,7 +21,7 @@ namespace BuildOnSave
 		readonly DTE _dte;
 		readonly OutputWindowPane _pane;
 		readonly SynchronizationContext _mainThread;
-		readonly BuildManager _buildManager;
+		static BuildManager BuildManager = new BuildManager();
 
 		// State as seen from the main thread.
 		CancellationTokenSource _buildCancellation_;
@@ -36,13 +36,7 @@ namespace BuildOnSave
 			_dte = dte;
 			_pane = pane;
 			_mainThread = SynchronizationContext.Current;
-			_buildManager = new BuildManager();
-		}
-
-		public void Dispose()
-		{
-			_buildManager.CancelAllSubmissions();
-			_buildManager.Dispose();
+			BuildManager = new BuildManager();
 		}
 
 		struct BuildRequest
@@ -277,11 +271,11 @@ namespace BuildOnSave
 		BuildStatus buildCore(BuildRequest request, CancellationToken cancellation, BuildParameters parameters)
 		{
 			using (measureBlock("build time"))
-			using (beginBuild(_buildManager, parameters))
+			using (beginBuild(BuildManager, parameters))
 			using (cancellation.Register(() =>
 			{
 				Log.I("cancelling background build");
-				_buildManager.CancelAllSubmissions();
+				BuildManager.CancelAllSubmissions();
 			}))
 			{
 				var projects = request.AllProjectsOrdered;
@@ -298,7 +292,7 @@ namespace BuildOnSave
 					}
 
 					var buildData = request.createBuildRequestData(project);
-					var result = _buildManager.BuildRequest(buildData);
+					var result = BuildManager.BuildRequest(buildData);
 					switch (result.OverallResult)
 					{
 						case BuildResultCode.Success:
