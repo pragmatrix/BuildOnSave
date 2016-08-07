@@ -13,7 +13,7 @@ namespace BuildOnSave
 		readonly DTE _dte;
 		readonly Window _outputWindow;
 		readonly OutputWindowPane _pane;
-		readonly CommandBarButton _barButton_;
+		readonly string _buttonTag;
 		readonly StdPicture[] _statusImages =
 		{
 			imageToPicture(ImageBuilder.createStatusImage(VSColors.Notification.Warning, false)),
@@ -30,11 +30,14 @@ namespace BuildOnSave
 		BuildStatus _status = BuildStatus.Indeterminate;
 		bool _processing;
 
+		const string BarButtonControlCaption = "BuildOnSave Status";
+
 		public DriverUI(DTE dte, Window outputWindow, OutputWindowPane pane)
 		{
 			_dte = dte;
 			_outputWindow = outputWindow;
 			_pane = pane;
+			_buttonTag = Guid.NewGuid().ToString();
 
 			// http://stackoverflow.com/questions/12049362/programmatically-add-add-in-button-to-the-standard-toolbar
 			// add a toolbar button to the standard toolbar
@@ -43,16 +46,15 @@ namespace BuildOnSave
 			{
 				var control = (CommandBarButton)bar.Controls.Add(MsoControlType.msoControlButton, Type.Missing, Type.Missing, Type.Missing, true);
 				control.Style = MsoButtonStyle.msoButtonIcon;
-				var controlInfo = "BuildOnSave Status";
-				control.TooltipText = controlInfo;
-				control.Caption = controlInfo;
+				control.TooltipText = BarButtonControlCaption;
+				control.Caption = BarButtonControlCaption;
+				control.Tag = _buttonTag;
 				control.BeginGroup = true;
 				control.Click += (CommandBarButton ctrl, ref bool d) =>
 				{
 					_outputWindow.Visible = true;
 					pane.Activate();
 				};
-				_barButton_ = control;
 			}
 			else
 			{
@@ -64,9 +66,19 @@ namespace BuildOnSave
 
 		public void Dispose()
 		{
-			_barButton_?.Delete(true);
+			withButton(button => button.Delete());
 		}
 
+
+		// Note that the button may be disposed at any time, so we have to look it up every time
+		// we access it.
+		void withButton(Action<CommandBarButton> action)
+		{
+			var bar = ((CommandBars)_dte.CommandBars)["Standard"];
+			var button = bar?.FindControl(Tag : _buttonTag) as CommandBarButton;
+			if (button != null)
+				action(button);
+		}
 
 		public void setBuildStatus(BuildStatus status)
 		{
@@ -83,11 +95,11 @@ namespace BuildOnSave
 
 		void updateUI()
 		{
-			if (_barButton_ == null)
-				return;
-
-			using (DevTools.measureBlock("setting image"))
-				_barButton_.Picture = getImage(_status, _processing);
+			withButton(button =>
+			{
+				using (DevTools.measureBlock("setting image"))
+					button.Picture = getImage(_status, _processing);
+			});
 		}
 
 		StdPicture getImage(BuildStatus status, bool processing)
