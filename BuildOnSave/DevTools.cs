@@ -23,7 +23,7 @@ namespace BuildOnSave
 #endif
 		}
 
-		struct DisposeAction : IDisposable
+		internal struct DisposeAction : IDisposable
 		{
 			readonly Action _action;
 

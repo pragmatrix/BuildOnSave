@@ -5,6 +5,10 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using EnvDTE;
+using Microsoft.Build.Evaluation;
+using Microsoft.VisualStudio.Shell.Interop;
+using Project = EnvDTE.Project;
+
 
 namespace BuildOnSave
 {
@@ -20,12 +24,12 @@ namespace BuildOnSave
 		readonly DTE _dte;
 		readonly Solution _solution;
 		public readonly BuildType BuildType;
-		readonly BackgroundBuild _backgroundBuild;
+		readonly BackgroundBuild2 _backgroundBuild;
 		readonly DriverUI _ui;
 		readonly SynchronizationContext _context;
 		readonly SavedDocumentsTracker _savedDocuments = new SavedDocumentsTracker();
 
-		public Driver(DTE dte, BuildType buildType, BackgroundBuild backgroundBuild, DriverUI ui)
+		public Driver(DTE dte, BuildType buildType, BackgroundBuild2 backgroundBuild, DriverUI ui)
 		{
 			_dte = dte;
 			_solution = _dte.Solution;
@@ -205,7 +209,6 @@ namespace BuildOnSave
 		void beginBuild(Solution solution, BuildType buildType, IEnumerable<Project> projects)
 		{
 			dumpState();
-
 			_ui.notifyBeginBuild();
 
 			switch (buildType)
@@ -214,12 +217,14 @@ namespace BuildOnSave
 					_backgroundBuild.beginBuild(buildCompleted);
 					break;
 				case BuildType.StartupProject:
-					var startupProject = (string)((object[])solution.SolutionBuild.StartupProjects)[0];
-					var startupProjectName = Path.GetFileNameWithoutExtension(startupProject);
-					_backgroundBuild.beginBuild(buildCompleted, startupProjectName);
+					// this seems to be a path relative to the solution's directory.
+					var relativeStartupProjectPath = (string)((object[])solution.SolutionBuild.StartupProjects)[0];
+					var solutionDirectory = Path.GetDirectoryName(solution.FullName);
+					var startupProjectPath = Path.Combine(solutionDirectory, relativeStartupProjectPath);
+					_backgroundBuild.beginBuild(buildCompleted, startupProjectPath);
 					break;
 				case BuildType.ProjectsOfSavedFiles:
-					var changedProjects = projects.Select(p => p.Name);
+					var changedProjects = projects.Select(p => p.FullName);
 					_backgroundBuild.beginBuild(buildCompleted, changedProjects.ToArray());
 					break;
 			}

@@ -137,7 +137,7 @@ namespace BuildOnSave
 			if (_driver_ != null)
 				return;
 
-			var backgroundBuild = new BackgroundBuild(_dte, _outputPane);
+			var backgroundBuild = new BackgroundBuild2(_dte, _outputPane);
 			var ui = new DriverUI(_dte, _outputWindow, _outputPane);
 			var driver = new Driver(_dte, buildType, backgroundBuild, ui);
 
