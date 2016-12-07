@@ -95,6 +95,13 @@
 				</Strings>
 			</Button>
 
+			<Button guid="guidBuildOnSavePackageCmdSet" id="TargetAffectedProjectsCommandId" priority="0x0100" type="Button">
+				<Parent guid="guidBuildOnSavePackageCmdSet" id="BuildOnSaveMenuTargetGroup" />
+				<Strings>
+					<ButtonText>Build Affected Projects of Saved Files</ButtonText>
+				</Strings>
+			</Button>
+
 		</Buttons>
 	</Commands>
 
@@ -109,6 +116,7 @@
 			<IDSymbol name="TargetSolutionCommandId" value="0x0101" />
 			<IDSymbol name="TargetStartupProjectCommandId" value="0x0102" />
 			<IDSymbol name="TargetChangedProjectsCommandId" value="0x0103" />
+			<IDSymbol name="TargetAffectedProjectsCommandId" value="0x0104" />
 
 			<IDSymbol name="BuildOnSaveMenuGroup" value="0x1020" />
 			<IDSymbol name="BuildOnSaveTopLevelMenu" value="0x1021"/>

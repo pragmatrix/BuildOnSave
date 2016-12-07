@@ -51,7 +51,7 @@ namespace BuildOnSave
 				string platform)
 			{
 				PrimaryProjects = primaryProjects;
-				AllProjectsOrdered = sortByBuildOrder(primaryProjects.Concat(dependentProjectsToBuild).Concat(skippedProjects).ToArray());
+				AllProjectsToBuildOrdered = sortByBuildOrder(primaryProjects.Concat(dependentProjectsToBuild).Concat(skippedProjects).ToArray());
 				SolutionPath = solutionPath;
 				WholeSolutionBuild = wholeSolutionBuid;
 				Configuration = configuration;
@@ -61,7 +61,7 @@ namespace BuildOnSave
 			}
 
 			public readonly ProjectInstance[] PrimaryProjects;
-			public readonly ProjectInstance[] AllProjectsOrdered;
+			public readonly ProjectInstance[] AllProjectsToBuildOrdered;
 			public readonly string SolutionPath;
 			public readonly bool WholeSolutionBuild;
 			public readonly string Configuration;
@@ -95,10 +95,11 @@ namespace BuildOnSave
 		/// Asynchronously begins a background build.
 		/// </summary>
 		/// <param name="onCompleted"></param>
-		/// <param name="projectPaths">The project paths to build. If this array is empty, the whole solution is built. 
+		/// <param name="projectPaths">The project paths to build. If this array is empty, the whole solution is built.
 		/// Note that the explicitly passed projects are always built, independently of the solution configuration, but dependencies may not.</param>
+		/// <param name="includeAffectedProjects">If true, automatically builds the affected projects also. Only used when projectPaths is set.</param>
 
-		public void beginBuild(Action<BuildStatus> onCompleted, params string[] projectPaths)
+		public void beginBuild(Action<BuildStatus> onCompleted, string[] projectPaths, bool includeAffectedProjects = false)
 		{
 			if (IsRunning)
 			{
@@ -106,7 +107,7 @@ namespace BuildOnSave
 				return;
 			}
 				
-			var request = makeBuildRequest(projectPaths);
+			var request = makeBuildRequest(projectPaths, includeAffectedProjects);
 			_buildCancellation_ = new CancellationTokenSource();
 
 			Action<BuildStatus> completed = status =>
@@ -119,7 +120,7 @@ namespace BuildOnSave
 			ThreadPool.QueueUserWorkItem(_ => build(request, _buildCancellation_.Token, completed));
 		}
 
-		BuildRequest makeBuildRequest(params string[] projectPaths)
+		BuildRequest makeBuildRequest(string[] projectPaths, bool includeAffectedProjects)
 		{
 			var allProjects =
 				ProjectCollection
@@ -148,12 +149,11 @@ namespace BuildOnSave
 					.ToArray();
 
 			var solutionSelectedInstances = filterProjectInstancesByPaths(allProjects, solutionSelectedPaths);
+			var skippedInstances = allProjects.Except(solutionSelectedInstances).ToArray();
 
 			var wholeSolutionBuild = projectPaths.Length == 0;
 			if (wholeSolutionBuild)
 			{
-				var skippedInstances = allProjects.Except(solutionSelectedInstances).ToArray();
-
 				return new BuildRequest(
 					solutionSelectedInstances,
 					Array.Empty<ProjectInstance>(), 
@@ -167,6 +167,23 @@ namespace BuildOnSave
 			// Note that the projects that are passed here with a full path are explicitly selected for the 
 			// build and must not be skipped even when the solution configuration says so.
 			var primaryProjects = projectInstancesOfPaths(allProjects, projectPaths);
+			if (includeAffectedProjects)
+			{
+				// ... but in affected projects mode, we adhere to the solution configuration again.
+				var affectedProjects = getAffectedProjects(allProjects, primaryProjects);
+
+				var skipped = affectedProjects.Intersect(skippedInstances).ToArray();
+				var selected = affectedProjects.Intersect(solutionSelectedInstances).ToArray();
+
+				return new BuildRequest(
+					selected,
+					Array.Empty<ProjectInstance>(),
+					skipped,
+					solution.FullName,
+					false,
+					configuration.Name,
+					configuration.PlatformName);
+			}
 
 			// but their dependencies adhere to the solution configuration.
 
@@ -216,11 +233,21 @@ namespace BuildOnSave
 				// want to be sure to not start another build then.
 				cancellation.ThrowIfCancellationRequested();
 
+				coreToIDE(() =>
+				{
+					_pane.Clear();
+					_pane.Activate();
+				});
+
 				status = buildCore(request, cancellation);
 			}
 			catch (Exception e)
 			{
 				Log.E(e, "build crashed");
+				coreToIDE(() => {
+					_pane.OutputString($"---------- BuildOnSave CRASHED, please report to https://www.github.com/pragmatrix/BuildOnSave/issues\n");
+					_pane.OutputString(e.ToString());
+				});
 			}
 			finally
 			{
@@ -236,13 +263,12 @@ namespace BuildOnSave
 
 		BuildStatus buildCore(BuildRequest request, CancellationToken cancellation)
 		{
-			coreToIDE(() =>
-			{
-				_pane.Clear();
-				_pane.Activate();
-			});
-
-			var consoleLogger = new ConsoleLogger(LoggerVerbosity.Quiet,
+#if DEBUG
+			var verbosity = LoggerVerbosity.Minimal;
+#else
+			var verbosity = LoggerVerbosity.Quiet;
+#endif
+			var consoleLogger = new ConsoleLogger(verbosity,
 				str =>
 					coreToIDE(() => _pane.OutputString(str)),
 				color => { },
@@ -254,17 +280,17 @@ namespace BuildOnSave
 
 			var summaryLogger = new SummaryLogger();
 
-			var parameters = new BuildParameters
+			var parameters = new BuildParameters()
 			{
 				Loggers = new ILogger[] {consoleLogger, summaryLogger},
 				EnableNodeReuse = true,
 				ShutdownInProcNodeOnBuildFinish = false,
 				DetailedSummary = false,
 			};
-
+			
 			printIntro(request);
 			var status = buildCore(request, cancellation, parameters);
-			printSummary(summaryLogger);
+			printSummary(summaryLogger, request.AllProjectsToBuildOrdered);
 			return status;
 		}
 
@@ -278,7 +304,7 @@ namespace BuildOnSave
 				BuildManager.CancelAllSubmissions();
 			}))
 			{
-				var projects = request.AllProjectsOrdered;
+				var projects = request.AllProjectsToBuildOrdered;
 				
 				foreach (var project in projects)
 				{
@@ -338,11 +364,18 @@ namespace BuildOnSave
 			return Path.GetFileNameWithoutExtension(fn);
 		}
 
-		void printSummary(SummaryLogger logger)
+		void printSummary(SummaryLogger logger, ProjectInstance[] allProjects)
 		{
 			var results = logger.ProjectResults;
+			var filenamesOfProjects = new HashSet<string>(allProjects.Select(pi => pi.FullPath));
 			// we must group by filename and not by project id, it seems that we get multiple results with different project ids for the same project.
-			var projectResults = results.GroupBy(result => result.Filename).Select(rs => rs.Last());
+			// and even that list may include projects that we did not actually build explicitly.
+			var projectResults = 
+				results
+				.GroupBy(result => result.Filename)
+				.Select(rs => rs.Last())
+				.Where(rs => filenamesOfProjects.Contains(rs.Filename))
+				.ToArray();
 			var succeded = projectResults.Count(result => result.Succeeded);
 			var failed = projectResults.Count(result => !result.Succeeded);
 
@@ -397,7 +430,7 @@ namespace BuildOnSave
 			public string Parameters { get; set; }
 		}
 
-		#region ProjectInstance helpers
+#region ProjectInstance helpers
 
 		/// Returns all the dependencies of a number of projects.
 		static ProjectInstance[] getDependencies(ProjectInstance[] allInstances, ProjectInstance[] roots)
@@ -421,6 +454,70 @@ namespace BuildOnSave
 
 			return dependencies.Select(g => allGuids[g]).ToArray();
 		}
+
+		/// Returns all the affected projects of the given list of projects. 
+		/// Since the roots may refer to each other, the roots are included in the result set.
+		static ProjectInstance[] getAffectedProjects(ProjectInstance[] allInstances, ProjectInstance[] roots)
+		{
+			var dependentMap = createDependentMap(allInstances);
+			var allGuids = allInstances.ToDictionary(getProjectGuid);
+			var rootGuids = roots.Select(getProjectGuid).ToArray();
+			var todo = new Queue<Guid>(rootGuids);
+			var affected = new HashSet<Guid>(rootGuids);
+
+			while (todo.Count != 0)
+			{
+				var next = todo.Dequeue();
+
+				HashSet<Guid> dependents = null;
+				if (!dependentMap.TryGetValue(next, out dependents))
+					continue;
+
+				dependents.ForEach(dep => {
+					if (affected.Add(dep))
+						todo.Enqueue(dep); }
+				);
+			}
+
+			return affected.Select(g => allGuids[g]).ToArray();
+		}
+
+
+		static Dictionary<Guid, Guid[]> createDependencyMap(ProjectInstance[] allInstances)
+		{
+			var allGuids = allInstances.ToDictionary(getProjectGuid);
+			var dict = new Dictionary<Guid, Guid[]>();
+			foreach (var inst in allInstances)
+			{
+				var guid = getProjectGuid(inst);
+				var deps = getDependentProjectGuids(inst).Where(allGuids.ContainsKey).ToArray();
+				dict.Add(guid, deps);
+			}
+			return dict;
+		}
+
+		static Dictionary<Guid, HashSet<Guid>> createDependentMap(ProjectInstance[] allInstances)
+		{
+			var allGuids = allInstances.ToDictionary(getProjectGuid);
+			var dict = new Dictionary<Guid, HashSet<Guid>>();
+			foreach (var inst in allInstances)
+			{
+				var guid = getProjectGuid(inst);
+				var deps = getDependentProjectGuids(inst).Where(allGuids.ContainsKey).ToArray();
+				foreach (var dep in deps)
+				{
+					HashSet<Guid> dependents = null;
+					if (!dict.TryGetValue(dep, out dependents))
+					{
+						dependents = new HashSet<Guid>();
+						dict.Add(dep, dependents);
+					}
+					dependents.Add(guid);
+				}
+			}
+			return dict;
+		}
+
 
 		static Guid getProjectGuid(ProjectInstance instance)
 		{
@@ -453,6 +550,6 @@ namespace BuildOnSave
 			return instances.Where(instance => lookup.Contains(instance.FullPath.ToLowerInvariant())).ToArray();
 		}
 
-		#endregion
+#endregion
 	}
 }

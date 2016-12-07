@@ -6,6 +6,7 @@ using EnvDTE;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 using Newtonsoft.Json;
+using System.Linq;
 
 namespace BuildOnSave
 {
@@ -25,10 +26,16 @@ namespace BuildOnSave
 		// Settings history
 		// 1: 
 		// 2: BuildType enum got extended by ProjectsOfSavedFiles
+		// 3: BuildType enum got extended by AffectedProjectsOfSavedFiles
 
-		const string KeySolutionSettings1 = "BuildOnSave_1";
-		const string KeySolutionSettings = "BuildOnSave_2";
-		
+		// this is what we will write.
+		const string CurrentSolutionSettingsKey = "BuildOnSave_3";
+		// this is what we can load
+		readonly string[] LoadableSolutionSettingKeys = new [] {
+			CurrentSolutionSettingsKey,
+			"BuildOnSave_2",
+			"BuildOnSave_1" };
+
 		// Initialize()
 		DTE _dte;
 		Events _events;
@@ -36,8 +43,7 @@ namespace BuildOnSave
 
 		public BuildOnSavePackage()
 		{
-			AddOptionKey(KeySolutionSettings1);
-			AddOptionKey(KeySolutionSettings);
+			LoadableSolutionSettingKeys.ForEach(AddOptionKey);
 		}
 
 		/// <summary>
@@ -80,7 +86,7 @@ namespace BuildOnSave
 
 		protected override void OnLoadOptions(string key, Stream stream)
 		{
-			if (key != KeySolutionSettings && key != KeySolutionSettings1)
+			if (!LoadableSolutionSettingKeys.Contains(key))
 				return;
 
 			if (_buildOnSave_ == null)
@@ -94,14 +100,15 @@ namespace BuildOnSave
 			try
 			{
 				var serialized = streamToString(stream);
-				if (serialized == "" && key != KeySolutionSettings)
+				if (serialized == "" && key != CurrentSolutionSettingsKey)
 				{
 					Log.D("ignored key {key} without data in OnLoadOptions", key);
 					return;
 				}
 				Log.D("deserializing and applying solution options {options}", serialized);
 				var options = JsonConvert.DeserializeObject<SolutionOptions>(serialized);
-				_buildOnSave_.SolutionOptions = options;
+				if (options != null) // this happened once (serialized == "null"), but I don't know why yet.
+					_buildOnSave_.SolutionOptions = options;
 			}
 			catch (Exception e)
 			{
@@ -111,7 +118,7 @@ namespace BuildOnSave
 
 		protected override void OnSaveOptions(string key, Stream stream)
 		{
-			if (key != KeySolutionSettings)
+			if (key != CurrentSolutionSettingsKey)
 				return;
 
 			if (_buildOnSave_ == null)

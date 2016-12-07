@@ -214,19 +214,30 @@ namespace BuildOnSave
 			switch (buildType)
 			{
 				case BuildType.Solution:
-					_backgroundBuild.beginBuild(buildCompleted);
+					_backgroundBuild.beginBuild(buildCompleted, new string[0]);
 					break;
+
 				case BuildType.StartupProject:
 					// this seems to be a path relative to the solution's directory.
 					var relativeStartupProjectPath = (string)((object[])solution.SolutionBuild.StartupProjects)[0];
 					var solutionDirectory = Path.GetDirectoryName(solution.FullName);
 					var startupProjectPath = Path.Combine(solutionDirectory, relativeStartupProjectPath);
-					_backgroundBuild.beginBuild(buildCompleted, startupProjectPath);
+					_backgroundBuild.beginBuild(buildCompleted, new [] { startupProjectPath });
 					break;
+
 				case BuildType.ProjectsOfSavedFiles:
+				{
 					var changedProjects = projects.Select(p => p.FullName);
 					_backgroundBuild.beginBuild(buildCompleted, changedProjects.ToArray());
 					break;
+				}
+
+				case BuildType.AffectedProjectsOfSavedFiles:
+				{
+					var changedProjects = projects.Select(p => p.FullName);
+					_backgroundBuild.beginBuild(buildCompleted, changedProjects.ToArray(), includeAffectedProjects: true);
+					break;
+				}
 			}
 		}
 
