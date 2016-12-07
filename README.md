@@ -1,18 +1,35 @@
 # BuildOnSave
 
-Put your cores to use and minimize the time to wait for your build!
+Put your CPU's cores to use and minimize the time to wait for your build!
 
 [![Build status](https://ci.appveyor.com/api/projects/status/4opfv6rmmw9mlums?svg=true)](https://ci.appveyor.com/project/pragmatrix/buildonsave)
 
 ## Introduction 
 
-BuildOnSave is an extension for Visual Studio 2015 that builds the current solution as soon a file is saved, and in combination with the wonderful extension [SaveAllTheTime](https://visualstudiogallery.msdn.microsoft.com/ee676c7f-83e8-4ef8-87ab-22a95ae8f1d4), enables a live, background build experience while you type.
+BuildOnSave is an extension for Visual Studio 2015 that builds the current solution as soon a file is saved, and in combination with the wonderful extension [SaveAllTheTime](https://github.com/pragmatrix/SaveAllTheTime/releases), enables a live, background build experience while you type.
 
-Features:
+### Features
 
-- There is a menu named BuildOnSave in the Visual Studio menu bar with options to disable BuildOnSave, build the whole solution in its active configuration, or the startup project only. The options are stored per solution.
+- There is a menu named BuildOnSave in the Visual Studio menu bar with options to disable BuildOnSave and to specify what excactly should be built. Options are stored per solution.
 - An output "pane" is registered for BuildOnSave and activates as soon a build starts. 
-- An icon is added to the Standard toolbar that shows the build status for background builds. red: build failed, yellow: build is indeterminate, and green: ready to go.  Clicking the icon opens the BuildOnSave output pane.
+- An icon is added to the Standard toolbar that shows the build status for background builds. **red** for build failed, **yellow** to show that the build is indeterminate, and **green** means ready to go. If the icon shows an outline instead of a filled circle, a build is currently active. Clicking the icon opens the BuildOnSave output pane.
+
+### Options
+
+These options define what happens as soon one file is saved.
+
+- **Build Solution**  
+  Rebuilds the complete solution.
+- **Build Startup Project**  
+  Rebuilds the startup project.
+- **Build Projects of Saved Files**  
+  Rebuilds the projects the files saved belong to.
+- **Build Affected Projects of Saved Files**   
+  Builds the projects the files saved belong to and all affected projects that are selected in the current solution build. Does not build or check dependencies. 
+
+The last option is the recommended option for now, because it should be the fastest one and should be able to keep all your projects up to date in the least amount of time.
+
+All these options are preliminary and will change in a future version.
 
 ## Download & Installation
 
@@ -35,7 +52,7 @@ Debug information is written to the Windows debug output, which can be monitored
 
 ## License
 
-Copyright (c) 2015, Armin Sander  
+Copyright (c) 2016, Armin Sander  
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
