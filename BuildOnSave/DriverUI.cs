@@ -93,6 +93,12 @@ namespace BuildOnSave
 			updateUI();
 		}
 
+		public void reportError(Exception e)
+		{
+			_pane.reportException(e);
+			setBuildStatus(BuildStatus.Failed);
+		}
+
 		void updateUI()
 		{
 			withButton(button =>

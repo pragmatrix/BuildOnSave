@@ -245,8 +245,7 @@ namespace BuildOnSave
 			{
 				Log.E(e, "build crashed");
 				coreToIDE(() => {
-					_pane.OutputString($"---------- BuildOnSave CRASHED, please report to https://www.github.com/pragmatrix/BuildOnSave/issues\n");
-					_pane.OutputString(e.ToString());
+					_pane.reportException(e);
 				});
 			}
 			finally

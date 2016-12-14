@@ -6,18 +6,25 @@ namespace BuildOnSave
 {
 	static class DTEExtensions
 	{
-		public static IEnumerable<Document> unsavedDocumentsBelongingToAProject(this DTE dte)
+		public static Document[] unsavedDocumentsBelongingToAProject(this DTE dte)
 		{
-			return dte.Documents
-				.Cast<Document>()
-				.Where(document => !document.Saved && document.belongsToAnOpenProject());
+			// note: this might have the side effect of opening a project's property page
+			// and throwing a COMException.
+			var allDocuments = dte.Documents.Cast<Document>().ToArray();
+			var unsavedDocuments = allDocuments.Where(document => !document.Saved).ToArray();
+			var unsavedBelongingToAnOpenProject = unsavedDocuments
+				.Where(document => document.belongsToAnOpenProject())
+				.ToArray();
+
+			return unsavedBelongingToAnOpenProject;
 		}
 
-		public static IEnumerable<Project> unsavedOpenProjects(this DTE dte)
+		public static Project[] unsavedOpenProjects(this DTE dte)
 		{
 			return dte.Solution.Projects
 				.Cast<Project>()
-				.Where(p => !p.Saved);
+				.Where(p => !p.Saved)
+				.ToArray();
 		}
 		public static bool belongsToAnOpenProject(this Document document)
 		{

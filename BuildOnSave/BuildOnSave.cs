@@ -214,4 +214,13 @@ namespace BuildOnSave
 			BuildType = BuildType.Solution
 		};
 	}
+
+	static class Helpers
+	{
+		public static void reportException(this OutputWindowPane pane, Exception e)
+		{
+			pane.OutputString($"---------- BuildOnSave CRASHED, please report to https://www.github.com/pragmatrix/BuildOnSave/issues\n");
+			pane.OutputString(e.ToString());
+		}
+	}
 }
