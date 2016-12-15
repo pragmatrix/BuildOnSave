@@ -134,18 +134,19 @@ namespace BuildOnSave
 			var solution = (Solution2)_dte.Solution;
 			var configuration = (SolutionConfiguration2)solution.SolutionBuild.ActiveConfiguration;
 
-			var uniqueNameToFullPath =
+			// note: fullpath may note be accessible if the project is not loaded!
+			var uniqueNameToProject =
 				solution.Projects
 				.Cast<EnvDTE.Project>()
-				.ToDictionary(p => p.UniqueName, p => p.FullName);
+				.ToDictionary(p => p.UniqueName, p => p);
 
 			var solutionSelectedPaths =
 				configuration
 					.SolutionContexts
 					.Cast<SolutionContext>()
 					.Where(sc => sc.ShouldBuild)
-					.Where(sc => uniqueNameToFullPath.ContainsKey(sc.ProjectName))
-					.Select(sc => uniqueNameToFullPath[sc.ProjectName])
+					.Where(sc => uniqueNameToProject.ContainsKey(sc.ProjectName))
+					.Select(sc => uniqueNameToProject[sc.ProjectName].FullName)
 					.ToArray();
 
 			var solutionSelectedInstances = filterProjectInstancesByPaths(allProjects, solutionSelectedPaths);
