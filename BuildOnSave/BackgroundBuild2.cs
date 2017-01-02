@@ -45,15 +45,11 @@ namespace BuildOnSave
 				ProjectInstance[] primaryProjects, 
 				ProjectInstance[] dependentProjectsToBuild, 
 				ProjectInstance[] skippedProjects, 
-				string solutionPath, 
-				bool wholeSolutionBuid, 
 				string configuration, 
 				string platform)
 			{
 				PrimaryProjects = primaryProjects;
 				AllProjectsToBuildOrdered = sortByBuildOrder(primaryProjects.Concat(dependentProjectsToBuild).Concat(skippedProjects).ToArray());
-				SolutionPath = solutionPath;
-				WholeSolutionBuild = wholeSolutionBuid;
 				Configuration = configuration;
 				Platform = platform;
 
@@ -62,8 +58,6 @@ namespace BuildOnSave
 
 			public readonly ProjectInstance[] PrimaryProjects;
 			public readonly ProjectInstance[] AllProjectsToBuildOrdered;
-			public readonly string SolutionPath;
-			public readonly bool WholeSolutionBuild;
 			public readonly string Configuration;
 			public readonly string Platform;
 
@@ -159,8 +153,6 @@ namespace BuildOnSave
 					solutionSelectedInstances,
 					Array.Empty<ProjectInstance>(), 
 					skippedInstances,
-					solution.FullName,
-					true,
 					configuration.Name,
 					configuration.PlatformName);
 			}
@@ -180,8 +172,6 @@ namespace BuildOnSave
 					selected,
 					Array.Empty<ProjectInstance>(),
 					skipped,
-					solution.FullName,
-					false,
 					configuration.Name,
 					configuration.PlatformName);
 			}
@@ -197,8 +187,6 @@ namespace BuildOnSave
 				primaryProjects,
 				dependenciesToBuild,
 				dependenciesToSkip,
-				solution.FullName,
-				false,
 				configuration.Name,
 				configuration.PlatformName);
 		}
@@ -342,12 +330,10 @@ namespace BuildOnSave
 
 		void printIntro(BuildRequest request)
 		{
-			var isSolution = request.WholeSolutionBuild;
-			var projectInfo = isSolution ?
-				"Solution: " + getSolutionNameFromFilename(request.SolutionPath)
-				: (request.PrimaryProjects.Length == 1
+			var projectInfo = 
+				request.PrimaryProjects.Length == 1
 					? ("Project: " + nameOfProject(request.PrimaryProjects[0]))
-					: ("Projects: " + request.PrimaryProjects.Select(nameOfProject).Aggregate((a, b) => a + ";" + b)));
+					: ("Projects: " + request.PrimaryProjects.Select(nameOfProject).Aggregate((a, b) => a + ";" + b));
 			var configurationInfo = "Configuration: " + request.Configuration + " " + request.Platform;
 
 			coreToIDE(() => _pane.OutputString($"---------- BuildOnSave: {projectInfo}, {configurationInfo} ----------\n"));
@@ -357,11 +343,6 @@ namespace BuildOnSave
 		{
 			var projectName = nameOfProject(project);
 			coreToIDE(() => _pane.OutputString($"{projectName} is not built because of the current solution configuration.\n"));
-		}
-
-		static string getSolutionNameFromFilename(string fn)
-		{
-			return Path.GetFileNameWithoutExtension(fn);
 		}
 
 		void printSummary(SummaryLogger logger, ProjectInstance[] allProjects)
