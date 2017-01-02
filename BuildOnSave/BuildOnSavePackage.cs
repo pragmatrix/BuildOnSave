@@ -27,13 +27,13 @@ namespace BuildOnSave
 		// 1: 
 		// 2: BuildType enum got extended by ProjectsOfSavedFiles
 		// 3: BuildType enum got extended by AffectedProjectsOfSavedFiles
+		// 4: BuildType enum got ProjectsOfSavedFiles and AffectedProjectsOfSavedFiles removed.
 
 		// this is what we will write.
-		const string CurrentSolutionSettingsKey = "BuildOnSave_3";
+		const string CurrentSolutionSettingsKey = "BuildOnSave_4";
 		// this is what we can load
 		readonly string[] LoadableSolutionSettingKeys = new [] {
 			CurrentSolutionSettingsKey,
-			"BuildOnSave_2",
 			"BuildOnSave_1" };
 
 		// Initialize()

@@ -43,13 +43,12 @@ namespace BuildOnSave
 		{
 			public BuildRequest(
 				ProjectInstance[] primaryProjects, 
-				ProjectInstance[] dependentProjectsToBuild, 
 				ProjectInstance[] skippedProjects, 
 				string configuration, 
 				string platform)
 			{
 				PrimaryProjects = primaryProjects;
-				AllProjectsToBuildOrdered = sortByBuildOrder(primaryProjects.Concat(dependentProjectsToBuild).Concat(skippedProjects).ToArray());
+				AllProjectsToBuildOrdered = sortByBuildOrder(primaryProjects.Concat(skippedProjects).ToArray());
 				Configuration = configuration;
 				Platform = platform;
 
@@ -89,11 +88,11 @@ namespace BuildOnSave
 		/// Asynchronously begins a background build.
 		/// </summary>
 		/// <param name="onCompleted"></param>
-		/// <param name="projectPaths">The project paths to build. If this array is empty, the whole solution is built.
+		/// <param name="startupProject_">The startup project to build. If null, the whole solution is built.
 		/// Note that the explicitly passed projects are always built, independently of the solution configuration, but dependencies may not.</param>
-		/// <param name="includeAffectedProjects">If true, automatically builds the affected projects also. Only used when projectPaths is set.</param>
+		/// <param name="changedProjects">The changed projects.</param>
 
-		public void beginBuild(Action<BuildStatus> onCompleted, string[] projectPaths, bool includeAffectedProjects = false)
+		public void beginBuild(Action<BuildStatus> onCompleted, string startupProject_, string[] changedProjects)
 		{
 			if (IsRunning)
 			{
@@ -101,7 +100,7 @@ namespace BuildOnSave
 				return;
 			}
 				
-			var request = makeBuildRequest(projectPaths, includeAffectedProjects);
+			var request = makeBuildRequest(startupProject_, changedProjects);
 			_buildCancellation_ = new CancellationTokenSource();
 
 			Action<BuildStatus> completed = status =>
@@ -114,7 +113,7 @@ namespace BuildOnSave
 			ThreadPool.QueueUserWorkItem(_ => build(request, _buildCancellation_.Token, completed));
 		}
 
-		BuildRequest makeBuildRequest(string[] projectPaths, bool includeAffectedProjects)
+		BuildRequest makeBuildRequest(string startupProject_, string[] changedProjectPaths)
 		{
 			var allProjects =
 				ProjectCollection
@@ -144,51 +143,42 @@ namespace BuildOnSave
 					.ToArray();
 
 			var solutionSelectedInstances = filterProjectInstancesByPaths(allProjects, solutionSelectedPaths);
-			var skippedInstances = allProjects.Except(solutionSelectedInstances).ToArray();
+			var solutionSkippedInstances = allProjects.Except(solutionSelectedInstances).ToArray();
 
-			var wholeSolutionBuild = projectPaths.Length == 0;
-			if (wholeSolutionBuild)
+			var changedProjects = projectInstancesOfPaths(allProjects, changedProjectPaths);
+
+			if (startupProject_ == null)
 			{
-				return new BuildRequest(
-					solutionSelectedInstances,
-					Array.Empty<ProjectInstance>(), 
-					skippedInstances,
-					configuration.Name,
-					configuration.PlatformName);
-			}
+				var affectedProjects = getAffectedProjects(allProjects, changedProjects);
 
-			// Note that the projects that are passed here with a full path are explicitly selected for the 
-			// build and must not be skipped even when the solution configuration says so.
-			var primaryProjects = projectInstancesOfPaths(allProjects, projectPaths);
-			if (includeAffectedProjects)
-			{
-				// ... but in affected projects mode, we adhere to the solution configuration again.
-				var affectedProjects = getAffectedProjects(allProjects, primaryProjects);
-
-				var skipped = affectedProjects.Intersect(skippedInstances).ToArray();
+				var skipped = affectedProjects.Intersect(solutionSkippedInstances).ToArray();
 				var selected = affectedProjects.Intersect(solutionSelectedInstances).ToArray();
 
 				return new BuildRequest(
 					selected,
-					Array.Empty<ProjectInstance>(),
 					skipped,
 					configuration.Name,
 					configuration.PlatformName);
 			}
+			else
+			{
+				var startupProjects = filterProjectInstancesByPaths(allProjects, new [] { startupProject_});
+				var startupProjectsClosure =
+					getDependencies(allProjects, startupProjects)
+						.Concat(startupProjects)
+						.ToArray();
 
-			// but their dependencies adhere to the solution configuration.
+				var affectedProjects = getAffectedProjects(startupProjectsClosure, changedProjects);
 
-			var dependencies = getDependencies(allProjects, primaryProjects);
+				var skipped = affectedProjects.Intersect(solutionSkippedInstances).ToArray();
+				var selected = affectedProjects.Intersect(solutionSelectedInstances).ToArray();
 
-			var dependenciesToBuild = dependencies.Intersect(solutionSelectedInstances).ToArray();
-			var dependenciesToSkip = dependencies.Except(dependenciesToBuild).ToArray();
-
-			return new BuildRequest(
-				primaryProjects,
-				dependenciesToBuild,
-				dependenciesToSkip,
-				configuration.Name,
-				configuration.PlatformName);
+				return new BuildRequest(
+					selected,
+					skipped,
+					configuration.Name,
+					configuration.PlatformName);
+			}
 		}
 
 		/// <summary>
@@ -413,7 +403,8 @@ namespace BuildOnSave
 
 #region ProjectInstance helpers
 
-		/// Returns all the dependencies of a number of projects.
+		/// Returns all the dependencies of a number of projects. Never returns a root, even if roots contain references
+		/// to each other.
 		static ProjectInstance[] getDependencies(ProjectInstance[] allInstances, ProjectInstance[] roots)
 		{
 			var allGuids = allInstances.ToDictionary(getProjectGuid);

@@ -6,7 +6,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using EnvDTE;
 using Project = EnvDTE.Project;
-using System.Runtime.InteropServices;
+using System.Diagnostics;
 
 namespace BuildOnSave
 {
@@ -213,33 +213,22 @@ namespace BuildOnSave
 			dumpState();
 			_ui.notifyBeginBuild();
 
+			var changedProjects = projects.Select(p => p.FullName).ToArray();
+
 			switch (buildType)
 			{
 				case BuildType.Solution:
-					_backgroundBuild.beginBuild(buildCompleted, new string[0]);
+					_backgroundBuild.beginBuild(buildCompleted, null, changedProjects);
 					break;
 
 				case BuildType.StartupProject:
 					// this seems to be a path relative to the solution's directory.
 					var relativeStartupProjectPath = (string)((object[])solution.SolutionBuild.StartupProjects)[0];
 					var solutionDirectory = Path.GetDirectoryName(solution.FullName);
+					Debug.Assert(solutionDirectory != null);
 					var startupProjectPath = Path.Combine(solutionDirectory, relativeStartupProjectPath);
-					_backgroundBuild.beginBuild(buildCompleted, new [] { startupProjectPath });
+					_backgroundBuild.beginBuild(buildCompleted, startupProjectPath, changedProjects);
 					break;
-
-				case BuildType.ProjectsOfSavedFiles:
-				{
-					var changedProjects = projects.Select(p => p.FullName);
-					_backgroundBuild.beginBuild(buildCompleted, changedProjects.ToArray());
-					break;
-				}
-
-				case BuildType.AffectedProjectsOfSavedFiles:
-				{
-					var changedProjects = projects.Select(p => p.FullName);
-					_backgroundBuild.beginBuild(buildCompleted, changedProjects.ToArray(), includeAffectedProjects: true);
-					break;
-				}
 			}
 		}
 

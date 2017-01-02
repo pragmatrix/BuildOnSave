@@ -6,8 +6,6 @@ namespace BuildOnSave
 	{
 		Solution,
 		StartupProject,
-		ProjectsOfSavedFiles,
-		AffectedProjectsOfSavedFiles
 	}
 
 	sealed class SolutionOptions
