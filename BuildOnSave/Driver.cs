@@ -116,12 +116,17 @@ namespace BuildOnSave
 				}
 
 				var savedDocuments = _savedDocuments.ToArray();
+				if (savedDocuments.Length == 0)
+					// two builds got scheduled?
+					// This can be reproduced by renaming an F# type name that is used in several dependent F# projects.
+					return;
+
 				_savedDocuments.Clear();
 
 				var projectsChangedBeforeBuild =
 					savedDocuments
 						// note: this looks redundant, but it isn't: because only documents that belong to a project are added to _savedDocuments does
-						// not mean that they have not removed from a project in the meantime (though this is probaby very unlikely)
+						// not mean that they have not removed from a project in the meantime (though this is probably very unlikely)
 						.Where(document => document.belongsToAnOpenProject())
 						.Select(document => document.ProjectItem.ContainingProject)
 						.Distinct()
