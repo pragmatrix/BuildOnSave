@@ -25,7 +25,7 @@ namespace BuildOnSave
 		readonly BackgroundBuild2 _backgroundBuild;
 		readonly DriverUI _ui;
 		readonly SynchronizationContext _context;
-		readonly SavedDocumentsTracker _savedDocuments = new SavedDocumentsTracker();
+		readonly List<Document> _savedDocuments = new List<Document>();
 
 		public Driver(DTE dte, BuildType buildType, BackgroundBuild2 backgroundBuild, DriverUI ui)
 		{
@@ -95,7 +95,7 @@ namespace BuildOnSave
 
 			if (_ignoreDocumentSaves || !document.belongsToAnOpenProject())
 				return;
-			_savedDocuments.track(document);
+			_savedDocuments.Add(document);
 			Log.D("document saved {path}:", document.FullName);
 			schedule(beginBuild);
 		}
@@ -115,7 +115,8 @@ namespace BuildOnSave
 					return;
 				}
 
-				var savedDocuments = _savedDocuments.takeAll();
+				var savedDocuments = _savedDocuments.ToArray();
+				_savedDocuments.Clear();
 
 				var projectsChangedBeforeBuild =
 					savedDocuments
@@ -142,9 +143,9 @@ namespace BuildOnSave
 
 		void saveSolutionFiles()
 		{
+			_ignoreDocumentSaves = true;
 			try
 			{
-				_ignoreDocumentSaves = true;
 				saveOpenDocumentsBelongingToAProject();
 				saveOpenProjects();
 				saveSolution();
@@ -246,23 +247,6 @@ namespace BuildOnSave
 		void dumpState([CallerMemberName] string context = "")
 		{
 			Log.D("{context}: state: {state}, again: {again}, thread: {thread}", context, _dte.Solution.SolutionBuild.BuildState, _buildAgain, System.Threading.Thread.CurrentThread.ManagedThreadId);
-		}
-	}
-
-	/// This is here to track saved documents, so that we can build a list of projects which may have changed and need to rebuild in BuildType.ProjectsOfSavedFiles
-	sealed class SavedDocumentsTracker
-	{
-		readonly List<Document> _documents = new List<Document>();
-		public void track(Document document)
-		{
-			_documents.Add(document);
-		}
-
-		public Document[] takeAll()
-		{
-			var documents = _documents.ToArray();
-			_documents.Clear();
-			return documents;
 		}
 	}
 }
