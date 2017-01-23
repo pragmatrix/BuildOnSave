@@ -39,7 +39,7 @@ namespace BuildOnSave
 			BuildManager = new BuildManager();
 		}
 
-		struct BuildRequest
+		public struct BuildRequest
 		{
 			public BuildRequest(
 				ProjectInstance[] primaryProjects, 
@@ -92,7 +92,7 @@ namespace BuildOnSave
 		/// Note that the explicitly passed projects are always built, independently of the solution configuration, but dependencies may not.</param>
 		/// <param name="changedProjects">The changed projects.</param>
 
-		public void beginBuild(Action<BuildStatus> onCompleted, string startupProject_, string[] changedProjects)
+		public void beginBuild(Action<BuildStatus> onCompleted, BuildRequest request)
 		{
 			if (IsRunning)
 			{
@@ -100,7 +100,6 @@ namespace BuildOnSave
 				return;
 			}
 				
-			var request = makeBuildRequest(startupProject_, changedProjects);
 			_buildCancellation_ = new CancellationTokenSource();
 
 			Action<BuildStatus> completed = status =>
@@ -113,7 +112,7 @@ namespace BuildOnSave
 			ThreadPool.QueueUserWorkItem(_ => build(request, _buildCancellation_.Token, completed));
 		}
 
-		BuildRequest makeBuildRequest(string startupProject_, string[] changedProjectPaths)
+		public BuildRequest? tryMakeBuildRequest(string startupProject_, string[] changedProjectPaths)
 		{
 			var allProjects =
 				ProjectCollection
@@ -151,8 +150,10 @@ namespace BuildOnSave
 			{
 				var affectedProjects = getAffectedProjects(allProjects, changedProjects);
 
-				var skipped = affectedProjects.Intersect(solutionSkippedInstances).ToArray();
 				var selected = affectedProjects.Intersect(solutionSelectedInstances).ToArray();
+				if (selected.Length == 0)
+					return null;
+				var skipped = affectedProjects.Intersect(solutionSkippedInstances).ToArray();
 
 				return new BuildRequest(
 					selected,
@@ -168,10 +169,14 @@ namespace BuildOnSave
 						.Concat(startupProjects)
 						.ToArray();
 
-				var affectedProjects = getAffectedProjects(startupProjectsClosure, changedProjects);
+				var changedProjectsInStartupProjectsClosure = changedProjects.Intersect(startupProjectsClosure).ToArray();
 
-				var skipped = affectedProjects.Intersect(solutionSkippedInstances).ToArray();
+				var affectedProjects = getAffectedProjects(startupProjectsClosure, changedProjectsInStartupProjectsClosure);
+
 				var selected = affectedProjects.Intersect(solutionSelectedInstances).ToArray();
+				if (selected.Length == 0)
+					return null;
+				var skipped = affectedProjects.Intersect(solutionSkippedInstances).ToArray();
 
 				return new BuildRequest(
 					selected,

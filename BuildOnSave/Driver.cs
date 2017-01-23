@@ -217,25 +217,34 @@ namespace BuildOnSave
 		void beginBuild(Solution solution, BuildType buildType, IEnumerable<Project> projects)
 		{
 			dumpState();
-			_ui.notifyBeginBuild();
 
 			var changedProjects = projects.Select(p => p.FullName).ToArray();
+			Log.D("changed projects {projects}", changedProjects.Length);
 
 			switch (buildType)
 			{
 				case BuildType.Solution:
-					_backgroundBuild.beginBuild(buildCompleted, null, changedProjects);
+					beginBuild(null, changedProjects);
 					break;
 
 				case BuildType.StartupProject:
 					// this seems to be a path relative to the solution's directory.
-					var relativeStartupProjectPath = (string)((object[])solution.SolutionBuild.StartupProjects)[0];
+					var relativeStartupProjectPath = (string) ((object[]) solution.SolutionBuild.StartupProjects)[0];
 					var solutionDirectory = Path.GetDirectoryName(solution.FullName);
 					Debug.Assert(solutionDirectory != null);
 					var startupProjectPath = Path.Combine(solutionDirectory, relativeStartupProjectPath);
-					_backgroundBuild.beginBuild(buildCompleted, startupProjectPath, changedProjects);
+					beginBuild(startupProjectPath, changedProjects);
 					break;
 			}
+		}
+
+		void beginBuild(string startupProject_, string[] changedProjects)
+		{
+			var request = _backgroundBuild.tryMakeBuildRequest(startupProject_, changedProjects);
+			if (request == null)
+				return;
+			_ui.notifyBeginBuild();
+			_backgroundBuild.beginBuild(buildCompleted, request.Value);
 		}
 
 		void buildCompleted(BuildStatus status)
