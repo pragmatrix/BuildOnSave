@@ -251,7 +251,12 @@ namespace BuildOnSave
 
 		void dumpState([CallerMemberName] string context = "")
 		{
-			Log.D("{context}: state: {state}, again: {again}, thread: {thread}", context, _dte.Solution.SolutionBuild.BuildState, _buildAgain, System.Threading.Thread.CurrentThread.ManagedThreadId);
+			Log.D("{context}: state: {state}, again: {again}, thread: {thread}, saved: {saved}", 
+				context, 
+				_dte.Solution.SolutionBuild.BuildState, 
+				_buildAgain, 
+				System.Threading.Thread.CurrentThread.ManagedThreadId,
+				_savedDocuments.Count);
 		}
 	}
 }
