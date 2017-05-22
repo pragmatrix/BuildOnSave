@@ -114,7 +114,7 @@ namespace BuildOnSave
 
 		public BuildRequest? tryMakeBuildRequest(string startupProject_, string[] changedProjectPaths)
 		{
-			var allProjects =
+			var allProjectsFast =
 				ProjectCollection
 					.GlobalProjectCollection
 					.LoadedProjects
@@ -124,7 +124,23 @@ namespace BuildOnSave
 					.ToArray();
 
 			var solution = (Solution2)_dte.Solution;
+
+			var loadedDTEProjects =
+				solution.GetAllProjects()
+					.Where(p => p.IsLoaded())
+					.ToArray();
+
 			var configuration = (SolutionConfiguration2)solution.SolutionBuild.ActiveConfiguration;
+
+			var globalProperties = new Dictionary<string, string>
+			{
+				{ "Configuration", configuration.Name },
+				{ "Platform", configuration.PlatformName }
+			};
+
+			var allProjects =
+				loadedDTEProjects.Select(p => new ProjectInstance(p.FullName, globalProperties, null)).ToArray();
+
 
 			// note: fullpath may note be accessible if the project is not loaded!
 			var uniqueNameToProject =

@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using EnvDTE;
+using EnvDTE80;
 
 namespace BuildOnSave
 {
@@ -30,5 +31,31 @@ namespace BuildOnSave
 		{
 			return document.ProjectItem.ContainingProject.FullName != "";
 		}
+
+		public static bool IsLoaded(this Project project)
+		{
+			return project.Kind != Constants.vsProjectKindUnmodeled;
+		}
+
+		public static IEnumerable<Project> GetAllProjects(this Solution2 sln)
+		{
+			return sln.Projects
+				.Cast<Project>()
+				.SelectMany(GetProjects);
+		}
+
+		private static IEnumerable<Project> GetProjects(Project project)
+		{
+			if (project.Kind == Constants.vsProjectKindSolutionItems)
+			{
+				return project.ProjectItems
+					.Cast<ProjectItem>()
+					.Select(x => x.SubProject)
+					.Where(x => x != null)
+					.SelectMany(GetProjects);
+			}
+			return new[] { project };
+		}
+
 	}
 }
