@@ -153,7 +153,7 @@ namespace BuildOnSave
 			// note: fullpath may note be accessible if the project is not loaded!
 			var uniqueNameToProject =
 				solution.Projects
-				.Cast<EnvDTE.Project>()
+				.Cast<Project>()
 				.ToDictionary(p => p.UniqueName, p => p);
 
 			var solutionSelectedPaths =

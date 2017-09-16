@@ -60,7 +60,7 @@ namespace BuildOnSave
 
 		static Dictionary<Guid, HashSet<Guid>> DependentMap(ProjectInstance[] allInstances)
 		{
-			var allGuids = allInstances.ToDictionary<ProjectInstance, Guid>(GetProjectGUID);
+			var allGuids = allInstances.ToDictionary(GetProjectGUID);
 			var dict = new Dictionary<Guid, HashSet<Guid>>();
 			foreach (var inst in allInstances)
 			{
