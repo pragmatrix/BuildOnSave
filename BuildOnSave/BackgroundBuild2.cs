@@ -41,17 +41,28 @@ namespace BuildOnSave
 		public struct BuildRequest
 		{
 			public BuildRequest(
-				ProjectInstance[] primaryProjects, 
-				ProjectInstance[] skippedProjects, 
+				BuildDependencies dependencies,
+				Project[] primaryProjects, 
+				Project[] skippedProjects, 
 				string configuration, 
 				string platform)
 			{
-				PrimaryProjects = primaryProjects;
-				AllProjectsToBuildOrdered = sortByBuildOrder(primaryProjects.Concat(skippedProjects).ToArray());
+				var properties = new Dictionary<string, string>
+				{
+					{ "Configuration", configuration },
+					{ "Platform", platform }
+				};
+
+				var allProjects = primaryProjects.Concat(skippedProjects).ToArray();
+				var allOrdered = Projects.SortByBuildOrder(dependencies, allProjects);
+				var instanceMap = allProjects.ToDictionary(k => k, project => project.CreateInstance(properties));
+
+				PrimaryProjects = primaryProjects.Select(p => instanceMap[p]).ToArray();
+				AllProjectsToBuildOrdered = allOrdered.Select(p => instanceMap[p]).ToArray();
 				Configuration = configuration;
 				Platform = platform;
 
-				_skipped = new HashSet<ProjectInstance>(skippedProjects);
+				_skipped = new HashSet<ProjectInstance>(skippedProjects.Select(p => instanceMap[p]));
 			}
 
 			public readonly ProjectInstance[] PrimaryProjects;
@@ -69,19 +80,6 @@ namespace BuildOnSave
 			public BuildRequestData createBuildRequestData(ProjectInstance instance)
 			{
 				return new BuildRequestData(instance, instance.DefaultTargets.ToArray(), null);
-			}
-
-			static ProjectInstance[] sortByBuildOrder(ProjectInstance[] instances)
-			{
-				var rootProjects = instances.ToDictionary(ProjectInstances.GetProjectGUID);
-
-				var ordered = 
-					rootProjects.Keys.SortTopologicallyReverse(g1 => 
-						rootProjects[g1]
-						.DependentProjectGUIDs()
-						.Where(rootProjects.ContainsKey));
-
-				return ordered.Select(g => rootProjects[g]).ToArray();
 			}
 		}
 
@@ -108,18 +106,6 @@ namespace BuildOnSave
 
 		public BuildRequest? tryMakeBuildRequest(string startupProject_, string[] changedProjectPaths)
 		{
-#if false
-			// sadly, this only returns .NET projects.
-			var allProjectsFast =
-				ProjectCollection
-					.GlobalProjectCollection
-					.LoadedProjects
-					.Select(p => p.CreateProjectInstance())
-					// this removes csproj.user projects
-					.Where(instance => instance.DefaultTargets.Count != 0)
-					.ToArray();
-#endif
-
 			var solution = (Solution2)_dte.Solution;
 
 			var loadedProjects =
@@ -129,12 +115,6 @@ namespace BuildOnSave
 			var dependencies = solution.SolutionBuild.BuildDependencies;
 
 			var configuration = (SolutionConfiguration2)solution.SolutionBuild.ActiveConfiguration;
-
-			var globalProperties = new Dictionary<string, string>
-			{
-				{ "Configuration", configuration.Name },
-				{ "Platform", configuration.PlatformName }
-			};
 
 			// note: fullpath may note be accessible if the project is not loaded!
 			var uniqueNameToProject =
@@ -167,8 +147,9 @@ namespace BuildOnSave
 				var skipped = affectedProjects.Intersect(solutionSkippedInstances).ToArray();
 
 				return new BuildRequest(
-					Projects.CreateInstances(selected, globalProperties),
-					Projects.CreateInstances(skipped, globalProperties),
+					dependencies,
+					selected,
+					skipped,
 					configuration.Name,
 					configuration.PlatformName);
 			}
@@ -189,8 +170,9 @@ namespace BuildOnSave
 				var skipped = affectedProjects.Intersect(solutionSkippedInstances).ToArray();
 
 				return new BuildRequest(
-					Projects.CreateInstances(selected, globalProperties),
-					Projects.CreateInstances(skipped, globalProperties),
+					dependencies,
+					selected,
+					skipped,
 					configuration.Name,
 					configuration.PlatformName);
 			}

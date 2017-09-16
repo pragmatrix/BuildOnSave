@@ -9,6 +9,19 @@ namespace BuildOnSave
 	/// Helpers for working with ProjectInstances.
 	static class ProjectInstances
 	{
+		public static ProjectInstance[] SortByBuildOrder(ProjectInstance[] instances)
+		{
+			var rootProjects = instances.ToDictionary(GetProjectGUID);
+
+			var ordered =
+				rootProjects.Keys.SortTopologicallyReverse(g1 =>
+					rootProjects[g1]
+						.DependentProjectGUIDs()
+						.Where(rootProjects.ContainsKey));
+
+			return ordered.Select(g => rootProjects[g]).ToArray();
+		}
+
 		/// Returns all the dependencies of a number of projects (direct and transitive).
 		/// Never returns a root, even if roots hold references to each other.
 		public static ProjectInstance[] Dependencies(ProjectInstance[] allInstances, ProjectInstance[] roots)
@@ -111,5 +124,6 @@ namespace BuildOnSave
 			var refs = instance.GetItems("ProjectReference").Select(item => Guid.Parse(item.GetMetadataValue("Project"))).ToArray();
 			return refs;
 		}
+
 	}
 }

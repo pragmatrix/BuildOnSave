@@ -9,6 +9,18 @@ namespace BuildOnSave
 	/// Helper to work with DTE Projects
 	static class Projects
 	{
+		public static Project[] SortByBuildOrder(BuildDependencies dependencies, Project[] instances)
+		{
+			var rootProjects = instances.ToDictionary(GetProjectKey);
+
+			var ordered =
+				rootProjects.Keys.SortTopologicallyReverse(key =>
+					DependentProjectKeys(dependencies, rootProjects[key])
+						.Where(rootProjects.ContainsKey));
+
+			return ordered.Select(key => rootProjects[key]).ToArray();
+		}
+
 		/// Returns all the dependencies of a number of projects (direct and transitive).
 		/// Never returns a root, even if roots hold references to each other.
 		public static Project[] Dependencies(BuildDependencies buildDependencies, Project[] allProjects, Project[] roots)
@@ -116,7 +128,7 @@ namespace BuildOnSave
 					.ToArray();
 		}
 
-		static ProjectInstance CreateInstance(this Project project, IDictionary<string, string> globalProperties)
+		public static ProjectInstance CreateInstance(this Project project, IDictionary<string, string> globalProperties)
 		{
 			return new ProjectInstance(project.FullName, globalProperties, null);
 		} 
