@@ -130,10 +130,16 @@ namespace BuildOnSave
 
 		static (string, string)[] GlobalProjectProperties(this SolutionContext context)
 		{
+			// not sure why that is.
+			var platformName = 
+				context.PlatformName == "Any CPU" 
+				? "AnyCPU" 
+				: context.PlatformName;
+
 			return new[]
 			{
 				("Configuration", context.ConfigurationName),
-				("Platform", context.PlatformName)
+				("Platform", platformName)
 			};
 		}
 
