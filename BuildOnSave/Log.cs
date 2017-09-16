@@ -7,7 +7,7 @@ namespace BuildOnSave
 	static class Log
 	{
 		static readonly ILogger log = new LoggerConfiguration()
-			.WriteTo.Trace()
+			.WriteTo.Seq("http://localhost:5341")
 			.MinimumLevel.Debug()
 			.CreateLogger();
 
