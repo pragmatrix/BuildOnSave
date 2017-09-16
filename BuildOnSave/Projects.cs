@@ -120,17 +120,27 @@ namespace BuildOnSave
 		{
 			return project.UniqueName;
 		}
-
-		public static ProjectInstance[] CreateInstances(Project[] projects, IDictionary<string, string> globalProperties)
+		public static Dictionary<string, (string, string)[]> GlobalProjectProperties(this SolutionContexts solutionContexts)
 		{
-			return projects
-					.Select(project => CreateInstance(project, globalProperties))
-					.ToArray();
+			return solutionContexts
+				.Cast<SolutionContext>()
+				.ToDictionary(context => context.ProjectName, GlobalProjectProperties);
+			
 		}
 
-		public static ProjectInstance CreateInstance(this Project project, IDictionary<string, string> globalProperties)
+		static (string, string)[] GlobalProjectProperties(this SolutionContext context)
 		{
-			return new ProjectInstance(project.FullName, globalProperties, null);
+			return new[]
+			{
+				("Configuration", context.ConfigurationName),
+				("Platform", context.PlatformName)
+			};
+		}
+
+		public static ProjectInstance CreateInstance(this Project project, (string, string)[] globalProperties)
+		{
+			var properties = globalProperties.ToDictionary(kv => kv.Item1, kv => kv.Item2);
+			return new ProjectInstance(project.FullName, properties, null);
 		} 
 	}
 }

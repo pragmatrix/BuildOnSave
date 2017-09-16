@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -43,32 +42,30 @@ namespace BuildOnSave
 			public BuildRequest(
 				BuildDependencies dependencies,
 				Project[] primaryProjects, 
-				Project[] skippedProjects, 
-				string configuration, 
-				string platform)
+				Project[] skippedProjects,
+				string solutionConfiguration,
+				string solutionPlatform,
+				SolutionContexts solutionContexts)
 			{
-				var properties = new Dictionary<string, string>
-				{
-					{ "Configuration", configuration },
-					{ "Platform", platform }
-				};
-
 				var allProjects = primaryProjects.Concat(skippedProjects).ToArray();
 				var allOrdered = Projects.SortByBuildOrder(dependencies, allProjects);
-				var instanceMap = allProjects.ToDictionary(k => k, project => project.CreateInstance(properties));
+				var projectProperties = solutionContexts.GlobalProjectProperties();
+				var instanceMap = allProjects.ToDictionary(
+					project => project, 
+					project => project.CreateInstance(projectProperties[project.UniqueName]));
 
 				PrimaryProjects = primaryProjects.Select(p => instanceMap[p]).ToArray();
 				AllProjectsToBuildOrdered = allOrdered.Select(p => instanceMap[p]).ToArray();
-				Configuration = configuration;
-				Platform = platform;
+				SolutionConfiguration = solutionConfiguration;
+				SolutionPlatform = solutionPlatform;
 
 				_skipped = new HashSet<ProjectInstance>(skippedProjects.Select(p => instanceMap[p]));
 			}
 
 			public readonly ProjectInstance[] PrimaryProjects;
 			public readonly ProjectInstance[] AllProjectsToBuildOrdered;
-			public readonly string Configuration;
-			public readonly string Platform;
+			public readonly string SolutionConfiguration;
+			public readonly string SolutionPlatform;
 
 			readonly HashSet<ProjectInstance> _skipped;
 
@@ -131,7 +128,6 @@ namespace BuildOnSave
 					.Select(sc => uniqueNameToProject[sc.ProjectName].FullName)
 					.ToArray();
 
-
 			var solutionSelectedInstances = Projects.FilterByPaths(loadedProjects, solutionSelectedPaths);
 			var solutionSkippedInstances = loadedProjects.Except(solutionSelectedInstances).ToArray();
 
@@ -151,7 +147,8 @@ namespace BuildOnSave
 					selected,
 					skipped,
 					configuration.Name,
-					configuration.PlatformName);
+					configuration.PlatformName, 
+					configuration.SolutionContexts);
 			}
 			else
 			{
@@ -174,7 +171,8 @@ namespace BuildOnSave
 					selected,
 					skipped,
 					configuration.Name,
-					configuration.PlatformName);
+					configuration.PlatformName,
+					configuration.SolutionContexts);
 			}
 		}
 
@@ -321,7 +319,7 @@ namespace BuildOnSave
 				request.PrimaryProjects.Length == 1
 					? ("Project: " + request.PrimaryProjects[0].NameOf())
 					: ("Projects: " + request.PrimaryProjects.Select(ProjectInstances.NameOf).Aggregate((a, b) => a + ";" + b));
-			var configurationInfo = "Configuration: " + request.Configuration + " " + request.Platform;
+			var configurationInfo = "Configuration: " + request.SolutionConfiguration + " " + request.SolutionPlatform;
 
 			coreToIDE(() => _pane.OutputString($"---------- BuildOnSave: {projectInfo}, {configurationInfo} ----------\n"));
 		}
