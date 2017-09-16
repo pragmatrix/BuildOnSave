@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -115,6 +116,7 @@ namespace BuildOnSave
 		public BuildRequest? tryMakeBuildRequest(string startupProject_, string[] changedProjectPaths)
 		{
 #if false
+			// sadly, this only returns .NET projects.
 			var allProjectsFast =
 				ProjectCollection
 					.GlobalProjectCollection
@@ -140,9 +142,20 @@ namespace BuildOnSave
 				{ "Platform", configuration.PlatformName }
 			};
 
+			var dependencies = solution.SolutionBuild.BuildDependencies;
+			var dependencyMap = loadedDTEProjects.Select(p => dependencies.Item(p.UniqueName)).ToArray();
+			foreach (var dep in dependencyMap)
+			{
+				Log.D("project {project} depends on ", dep.Project.UniqueName);
+				var requiredProjects = dep.RequiredProjects as IEnumerable;
+				foreach (EnvDTE.Project project in requiredProjects)
+				{
+					Log.D(project.UniqueName);
+				}
+			}
+
 			var allProjects =
 				loadedDTEProjects.Select(p => new ProjectInstance(p.FullName, globalProperties, null)).ToArray();
-
 
 			// note: fullpath may note be accessible if the project is not loaded!
 			var uniqueNameToProject =
