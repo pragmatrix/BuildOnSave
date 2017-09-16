@@ -113,10 +113,8 @@ namespace BuildOnSave
 
 			var configuration = (SolutionConfiguration2)solution.SolutionBuild.ActiveConfiguration;
 
-			// note: fullpath may note be accessible if the project is not loaded!
 			var uniqueNameToProject =
-				solution.Projects
-				.Cast<Project>()
+				loadedProjects
 				.ToDictionary(p => p.UniqueName, p => p);
 
 			var solutionSelectedPaths =
