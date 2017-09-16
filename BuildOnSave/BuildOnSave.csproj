@@ -73,6 +73,7 @@
     <Compile Include="BackgroundBuild2.cs" />
     <Compile Include="BuildOnSave.cs" />
     <Compile Include="BuildOnSavePackage.cs" />
+    <Compile Include="ProjectInstances.cs" />
     <Compile Include="DevTools.cs" />
     <Compile Include="Driver.cs" />
     <Compile Include="DriverUI.cs" />
