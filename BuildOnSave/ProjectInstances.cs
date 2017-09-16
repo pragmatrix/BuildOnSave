@@ -13,15 +13,15 @@ namespace BuildOnSave
 		/// to each other.
 		public static ProjectInstance[] Dependencies(ProjectInstance[] allInstances, ProjectInstance[] roots)
 		{
-			var allGuids = allInstances.ToDictionary<ProjectInstance, Guid>(ProjectGUID);
-			var todo = new Queue<Guid>(roots.Select(ProjectGUID));
-			var rootSet = new HashSet<Guid>(roots.Select(ProjectGUID));
+			var allGuids = allInstances.ToDictionary(GetProjectGUID);
+			var todo = new Queue<Guid>(roots.Select(GetProjectGUID));
+			var rootSet = new HashSet<Guid>(roots.Select(GetProjectGUID));
 			var dependencies = new HashSet<Guid>();
 			while (todo.Count != 0)
 			{
 				var next = todo.Dequeue();
 
-				Enumerable.Where<Guid>(DependentProjectGUIDs(allGuids[next]), g => !dependencies.Contains(g) && !rootSet.Contains(g) && allGuids.ContainsKey(g))
+				DependentProjectGUIDs(allGuids[next]).Where(g => !dependencies.Contains(g) && !rootSet.Contains(g) && allGuids.ContainsKey(g))
 					.ForEach(g =>
 					{
 						todo.Enqueue(g);
@@ -37,8 +37,8 @@ namespace BuildOnSave
 		public static ProjectInstance[] AffectedProjects(ProjectInstance[] allInstances, ProjectInstance[] roots)
 		{
 			var dependentMap = DependentMap(allInstances);
-			var allGuids = allInstances.ToDictionary<ProjectInstance, Guid>(ProjectGUID);
-			var rootGuids = roots.Select(ProjectGUID).ToArray<Guid>();
+			var allGuids = allInstances.ToDictionary(GetProjectGUID);
+			var rootGuids = roots.Select(GetProjectGUID).ToArray();
 			var todo = new Queue<Guid>(rootGuids);
 			var affected = new HashSet<Guid>(rootGuids);
 
@@ -46,8 +46,7 @@ namespace BuildOnSave
 			{
 				var next = todo.Dequeue();
 
-				HashSet<Guid> dependents = null;
-				if (!dependentMap.TryGetValue(next, out dependents))
+				if (!dependentMap.TryGetValue(next, out var dependents))
 					continue;
 
 				dependents.ForEach(dep => {
@@ -59,31 +58,17 @@ namespace BuildOnSave
 			return affected.Select(g => allGuids[g]).ToArray();
 		}
 
-		static Dictionary<Guid, Guid[]> DependencyMap(ProjectInstance[] allInstances)
-		{
-			var allGuids = allInstances.ToDictionary<ProjectInstance, Guid>(ProjectGUID);
-			var dict = new Dictionary<Guid, Guid[]>();
-			foreach (var inst in allInstances)
-			{
-				var guid = ProjectGUID(inst);
-				var deps = Enumerable.Where<Guid>(DependentProjectGUIDs(inst), allGuids.ContainsKey).ToArray();
-				dict.Add(guid, deps);
-			}
-			return dict;
-		}
-
 		static Dictionary<Guid, HashSet<Guid>> DependentMap(ProjectInstance[] allInstances)
 		{
-			var allGuids = allInstances.ToDictionary<ProjectInstance, Guid>(ProjectGUID);
+			var allGuids = allInstances.ToDictionary<ProjectInstance, Guid>(GetProjectGUID);
 			var dict = new Dictionary<Guid, HashSet<Guid>>();
 			foreach (var inst in allInstances)
 			{
-				var guid = ProjectGUID(inst);
-				var deps = Enumerable.Where<Guid>(DependentProjectGUIDs(inst), allGuids.ContainsKey).ToArray();
+				var guid = GetProjectGUID(inst);
+				var deps = DependentProjectGUIDs(inst).Where(allGuids.ContainsKey).ToArray();
 				foreach (var dep in deps)
 				{
-					HashSet<Guid> dependents = null;
-					if (!dict.TryGetValue(dep, out dependents))
+					if (!dict.TryGetValue(dep, out var dependents))
 					{
 						dependents = new HashSet<Guid>();
 						dict.Add(dep, dependents);
@@ -94,7 +79,7 @@ namespace BuildOnSave
 			return dict;
 		}
 
-		public static Guid ProjectGUID(this ProjectInstance instance)
+		public static Guid GetProjectGUID(this ProjectInstance instance)
 		{
 			var projectGuid = instance.GetPropertyValue("ProjectGuid");
 			if (projectGuid == "")

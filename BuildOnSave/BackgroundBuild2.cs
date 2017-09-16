@@ -1,12 +1,10 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Threading;
 using EnvDTE;
 using EnvDTE80;
-using Microsoft.Build.Evaluation;
 using Microsoft.Build.Execution;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Logging;
@@ -75,24 +73,19 @@ namespace BuildOnSave
 
 			static ProjectInstance[] sortByBuildOrder(ProjectInstance[] instances)
 			{
-				var rootProjects = instances.ToDictionary(ProjectInstances.ProjectGUID);
+				var rootProjects = instances.ToDictionary(ProjectInstances.GetProjectGUID);
 
 				var ordered = 
-					rootProjects.Keys.SortTopologicallyReverse(
-						g1 => ProjectInstances.DependentProjectGUIDs(rootProjects[g1]).Where(rootProjects.ContainsKey));
+					rootProjects.Keys.SortTopologicallyReverse(g1 => 
+						rootProjects[g1]
+						.DependentProjectGUIDs()
+						.Where(rootProjects.ContainsKey));
 
 				return ordered.Select(g => rootProjects[g]).ToArray();
 			}
 		}
 
-		/// <summary>
 		/// Asynchronously begins a background build.
-		/// </summary>
-		/// <param name="onCompleted"></param>
-		/// <param name="startupProject_">The startup project to build. If null, the whole solution is built.
-		/// Note that the explicitly passed projects are always built, independently of the solution configuration, but dependencies may not.</param>
-		/// <param name="changedProjects">The changed projects.</param>
-
 		public void beginBuild(Action<BuildStatus> onCompleted, BuildRequest request)
 		{
 			if (IsRunning)
@@ -103,14 +96,14 @@ namespace BuildOnSave
 				
 			_buildCancellation_ = new CancellationTokenSource();
 
-			Action<BuildStatus> completed = status =>
+			void OnCompleted(BuildStatus status)
 			{
 				_buildCancellation_.Dispose();
 				_buildCancellation_ = null;
 				onCompleted(status);
-			};
+			}
 
-			ThreadPool.QueueUserWorkItem(_ => build(request, _buildCancellation_.Token, completed));
+			ThreadPool.QueueUserWorkItem(_ => build(request, _buildCancellation_.Token, OnCompleted));
 		}
 
 		public BuildRequest? tryMakeBuildRequest(string startupProject_, string[] changedProjectPaths)
@@ -148,7 +141,7 @@ namespace BuildOnSave
 			{
 				Log.D("project {project} depends on ", dep.Project.UniqueName);
 				var requiredProjects = dep.RequiredProjects as IEnumerable;
-				foreach (EnvDTE.Project project in requiredProjects)
+				foreach (Project project in requiredProjects)
 				{
 					Log.D(project.UniqueName);
 				}
@@ -357,7 +350,7 @@ namespace BuildOnSave
 		{
 			var projectInfo = 
 				request.PrimaryProjects.Length == 1
-					? ("Project: " + ProjectInstances.NameOf(request.PrimaryProjects[0]))
+					? ("Project: " + request.PrimaryProjects[0].NameOf())
 					: ("Projects: " + request.PrimaryProjects.Select(ProjectInstances.NameOf).Aggregate((a, b) => a + ";" + b));
 			var configurationInfo = "Configuration: " + request.Configuration + " " + request.Platform;
 
