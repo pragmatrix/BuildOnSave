@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -114,6 +114,7 @@ namespace BuildOnSave
 
 		public BuildRequest? tryMakeBuildRequest(string startupProject_, string[] changedProjectPaths)
 		{
+#if false
 			var allProjectsFast =
 				ProjectCollection
 					.GlobalProjectCollection
@@ -122,6 +123,7 @@ namespace BuildOnSave
 					// this removes csproj.user projects
 					.Where(instance => instance.DefaultTargets.Count != 0)
 					.ToArray();
+#endif
 
 			var solution = (Solution2)_dte.Solution;
 
