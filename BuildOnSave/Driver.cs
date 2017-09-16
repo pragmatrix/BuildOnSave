@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -93,7 +93,7 @@ namespace BuildOnSave
 		{
 			dumpState();
 
-			if (_ignoreDocumentSaves || !document.belongsToAnOpenProject())
+			if (_ignoreDocumentSaves || !document.BelongsToAnOpenProject())
 				return;
 			_savedDocuments.Add(document);
 			Log.D("document saved {path}:", document.FullName);
@@ -127,7 +127,7 @@ namespace BuildOnSave
 					savedDocuments
 						// note: this looks redundant, but it isn't: because only documents that belong to a project are added to _savedDocuments does
 						// not mean that they have not removed from a project in the meantime (though this is probably very unlikely)
-						.Where(document => document.belongsToAnOpenProject())
+						.Where(document => document.BelongsToAnOpenProject())
 						.Select(document => document.ProjectItem.ContainingProject)
 						.Distinct()
 						.ToArray();
@@ -164,11 +164,11 @@ namespace BuildOnSave
 		IEnumerable<Project> projectsThatHaveChangedFilesAfterSaving()
 		{
 			var projectsOfUnsavedDocuments =
-				_dte.unsavedDocumentsBelongingToAProject()
+				_dte.UnsavedDocumentsBelongingToAProject()
 				.Select(document => document.ProjectItem.ContainingProject);
 
 			var unsavedProjects =
-				_dte.unsavedOpenProjects();
+				_dte.UnsavedOpenProjects();
 
 			return projectsOfUnsavedDocuments.Concat(unsavedProjects).Distinct();
 		}
@@ -183,7 +183,7 @@ namespace BuildOnSave
 			// Sometimes There is a problem after opening a project and when there is a project page open, 
 			// and a a file is saved, this project page comes up and somehone screws everything up. 
 			
-			_dte.unsavedDocumentsBelongingToAProject()
+			_dte.UnsavedDocumentsBelongingToAProject()
 				.ForEach(document =>
 				{
 					Log.D("document {name} is not saved, saving now", document.Name);
@@ -194,7 +194,7 @@ namespace BuildOnSave
 
 		void saveOpenProjects()
 		{
-			_dte.unsavedOpenProjects()
+			_dte.UnsavedOpenProjects()
 				.ForEach(project =>
 				{
 					Log.D("project {name} is not saved, saving now", project.Name);

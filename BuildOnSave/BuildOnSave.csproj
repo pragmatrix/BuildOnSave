@@ -73,6 +73,7 @@
     <Compile Include="BackgroundBuild2.cs" />
     <Compile Include="BuildOnSave.cs" />
     <Compile Include="BuildOnSavePackage.cs" />
+    <Compile Include="ProjectInfo.cs" />
     <Compile Include="ProjectInstances.cs" />
     <Compile Include="DevTools.cs" />
     <Compile Include="Driver.cs" />
@@ -80,6 +81,7 @@
     <Compile Include="DTEExtensions.cs" />
     <Compile Include="ImageBuilder.cs" />
     <Compile Include="Log.cs" />
+    <Compile Include="Projects.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SolutionOptions.cs" />
     <Compile Include="TopologicalSort.cs" />

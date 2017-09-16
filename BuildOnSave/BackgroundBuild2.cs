@@ -122,10 +122,11 @@ namespace BuildOnSave
 
 			var solution = (Solution2)_dte.Solution;
 
-			var loadedDTEProjects =
+			var loadedProjects =
 				solution.GetAllProjects()
 					.Where(p => p.IsLoaded())
 					.ToArray();
+			var dependencies = solution.SolutionBuild.BuildDependencies;
 
 			var configuration = (SolutionConfiguration2)solution.SolutionBuild.ActiveConfiguration;
 
@@ -134,21 +135,6 @@ namespace BuildOnSave
 				{ "Configuration", configuration.Name },
 				{ "Platform", configuration.PlatformName }
 			};
-
-			var dependencies = solution.SolutionBuild.BuildDependencies;
-			var dependencyMap = loadedDTEProjects.Select(p => dependencies.Item(p.UniqueName)).ToArray();
-			foreach (var dep in dependencyMap)
-			{
-				Log.D("project {project} depends on ", dep.Project.UniqueName);
-				var requiredProjects = dep.RequiredProjects as IEnumerable;
-				foreach (Project project in requiredProjects)
-				{
-					Log.D(project.UniqueName);
-				}
-			}
-
-			var allProjects =
-				loadedDTEProjects.Select(p => new ProjectInstance(p.FullName, globalProperties, null)).ToArray();
 
 			// note: fullpath may note be accessible if the project is not loaded!
 			var uniqueNameToProject =
@@ -165,14 +151,15 @@ namespace BuildOnSave
 					.Select(sc => uniqueNameToProject[sc.ProjectName].FullName)
 					.ToArray();
 
-			var solutionSelectedInstances = ProjectInstances.FilterByPaths(allProjects, solutionSelectedPaths);
-			var solutionSkippedInstances = allProjects.Except(solutionSelectedInstances).ToArray();
 
-			var changedProjects = ProjectInstances.OfPaths(allProjects, changedProjectPaths);
+			var solutionSelectedInstances = Projects.FilterByPaths(loadedProjects, solutionSelectedPaths);
+			var solutionSkippedInstances = loadedProjects.Except(solutionSelectedInstances).ToArray();
+
+			var changedProjects = Projects.OfPaths(loadedProjects, changedProjectPaths);
 
 			if (startupProject_ == null)
 			{
-				var affectedProjects = ProjectInstances.AffectedProjects(allProjects, changedProjects);
+				var affectedProjects = dependencies.AffectedProjects(loadedProjects, changedProjects);
 
 				var selected = affectedProjects.Intersect(solutionSelectedInstances).ToArray();
 				if (selected.Length == 0)
@@ -180,21 +167,21 @@ namespace BuildOnSave
 				var skipped = affectedProjects.Intersect(solutionSkippedInstances).ToArray();
 
 				return new BuildRequest(
-					selected,
-					skipped,
+					Projects.CreateInstances(selected, globalProperties),
+					Projects.CreateInstances(skipped, globalProperties),
 					configuration.Name,
 					configuration.PlatformName);
 			}
 			else
 			{
-				var startupProjects = ProjectInstances.FilterByPaths(allProjects, new [] { startupProject_});
-				var startupProjectsClosure = ProjectInstances.Dependencies(allProjects, startupProjects)
+				var startupProjects = Projects.FilterByPaths(loadedProjects, new [] { startupProject_});
+				var startupProjectsClosure = Projects.Dependencies(dependencies, loadedProjects, startupProjects)
 						.Concat(startupProjects)
 						.ToArray();
 
 				var changedProjectsInStartupProjectsClosure = changedProjects.Intersect(startupProjectsClosure).ToArray();
 
-				var affectedProjects = ProjectInstances.AffectedProjects(startupProjectsClosure, changedProjectsInStartupProjectsClosure);
+				var affectedProjects = dependencies.AffectedProjects(startupProjectsClosure, changedProjectsInStartupProjectsClosure);
 
 				var selected = affectedProjects.Intersect(solutionSelectedInstances).ToArray();
 				if (selected.Length == 0)
@@ -202,8 +189,8 @@ namespace BuildOnSave
 				var skipped = affectedProjects.Intersect(solutionSkippedInstances).ToArray();
 
 				return new BuildRequest(
-					selected,
-					skipped,
+					Projects.CreateInstances(selected, globalProperties),
+					Projects.CreateInstances(skipped, globalProperties),
 					configuration.Name,
 					configuration.PlatformName);
 			}

@@ -9,8 +9,8 @@ namespace BuildOnSave
 	/// Helpers for working with ProjectInstances.
 	static class ProjectInstances
 	{
-		/// Returns all the dependencies of a number of projects. Never returns a root, even if roots contain references
-		/// to each other.
+		/// Returns all the dependencies of a number of projects (direct and transitive).
+		/// Never returns a root, even if roots hold references to each other.
 		public static ProjectInstance[] Dependencies(ProjectInstance[] allInstances, ProjectInstance[] roots)
 		{
 			var allGuids = allInstances.ToDictionary(GetProjectGUID);
@@ -21,7 +21,8 @@ namespace BuildOnSave
 			{
 				var next = todo.Dequeue();
 
-				DependentProjectGUIDs(allGuids[next]).Where(g => !dependencies.Contains(g) && !rootSet.Contains(g) && allGuids.ContainsKey(g))
+				DependentProjectGUIDs(allGuids[next])
+					.Where(g => !dependencies.Contains(g) && !rootSet.Contains(g) && allGuids.ContainsKey(g))
 					.ForEach(g =>
 					{
 						todo.Enqueue(g);
@@ -29,7 +30,9 @@ namespace BuildOnSave
 					});
 			}
 
-			return dependencies.Select(g => allGuids[g]).ToArray();
+			return dependencies
+				.Select(g => allGuids[g])
+				.ToArray();
 		}
 
 		/// Returns all the affected projects of the given list of projects. 
