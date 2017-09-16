@@ -37,24 +37,32 @@ namespace BuildOnSave
 			return project.Kind != Constants.vsProjectKindUnmodeled;
 		}
 
-		public static IEnumerable<Project> GetAllProjects(this Solution2 sln)
+		public static Project[] GetAllProjects(this Solution2 sln)
 		{
 			return sln.Projects
 				.Cast<Project>()
-				.SelectMany(GetProjects);
+				.SelectMany(GetProjects)
+				.ToArray();
 		}
 
-		static IEnumerable<Project> GetProjects(Project project)
+		static Project[] GetProjects(Project project)
 		{
-			if (project.Kind == Constants.vsProjectKindSolutionItems)
+			switch (project.Kind)
 			{
-				return project.ProjectItems
-					.Cast<ProjectItem>()
-					.Select(x => x.SubProject)
-					.Where(x => x != null)
-					.SelectMany(GetProjects);
+				case Constants.vsProjectKindMisc:
+					return new Project[]{ };
+
+				case Constants.vsProjectKindSolutionItems:
+					return project.ProjectItems
+						.Cast<ProjectItem>()
+						.Select(x => x.SubProject)
+						.Where(x => x != null)
+						.SelectMany(GetProjects)
+						.ToArray();
+
+				default:
+					return new[] { project };
 			}
-			return new[] { project };
 		}
 	}
 }
