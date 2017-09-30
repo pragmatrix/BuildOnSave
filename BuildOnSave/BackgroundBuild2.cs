@@ -1,11 +1,9 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Threading;
 using EnvDTE;
 using EnvDTE80;
-using Microsoft.Build.Evaluation;
 using Microsoft.Build.Execution;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Logging;
@@ -42,23 +40,32 @@ namespace BuildOnSave
 		public struct BuildRequest
 		{
 			public BuildRequest(
-				ProjectInstance[] primaryProjects, 
-				ProjectInstance[] skippedProjects, 
-				string configuration, 
-				string platform)
+				BuildDependencies dependencies,
+				Project[] primaryProjects, 
+				Project[] skippedProjects,
+				string solutionConfiguration,
+				string solutionPlatform,
+				SolutionContexts solutionContexts)
 			{
-				PrimaryProjects = primaryProjects;
-				AllProjectsToBuildOrdered = sortByBuildOrder(primaryProjects.Concat(skippedProjects).ToArray());
-				Configuration = configuration;
-				Platform = platform;
+				var allProjects = primaryProjects.Concat(skippedProjects).ToArray();
+				var allOrdered = Projects.SortByBuildOrder(dependencies, allProjects);
+				var projectProperties = solutionContexts.GlobalProjectProperties();
+				var instanceMap = allProjects.ToDictionary(
+					project => project, 
+					project => project.CreateInstance(projectProperties[project.UniqueName]));
 
-				_skipped = new HashSet<ProjectInstance>(skippedProjects);
+				PrimaryProjects = primaryProjects.Select(p => instanceMap[p]).ToArray();
+				AllProjectsToBuildOrdered = allOrdered.Select(p => instanceMap[p]).ToArray();
+				SolutionConfiguration = solutionConfiguration;
+				SolutionPlatform = solutionPlatform;
+
+				_skipped = new HashSet<ProjectInstance>(skippedProjects.Select(p => instanceMap[p]));
 			}
 
 			public readonly ProjectInstance[] PrimaryProjects;
 			public readonly ProjectInstance[] AllProjectsToBuildOrdered;
-			public readonly string Configuration;
-			public readonly string Platform;
+			public readonly string SolutionConfiguration;
+			public readonly string SolutionPlatform;
 
 			readonly HashSet<ProjectInstance> _skipped;
 
@@ -71,27 +78,9 @@ namespace BuildOnSave
 			{
 				return new BuildRequestData(instance, instance.DefaultTargets.ToArray(), null);
 			}
-
-			static ProjectInstance[] sortByBuildOrder(ProjectInstance[] instances)
-			{
-				var rootProjects = instances.ToDictionary(getProjectGuid);
-
-				var ordered = 
-					rootProjects.Keys.SortTopologicallyReverse(
-						g1 => getDependentProjectGuids(rootProjects[g1]).Where(rootProjects.ContainsKey));
-
-				return ordered.Select(g => rootProjects[g]).ToArray();
-			}
 		}
 
-		/// <summary>
 		/// Asynchronously begins a background build.
-		/// </summary>
-		/// <param name="onCompleted"></param>
-		/// <param name="startupProject_">The startup project to build. If null, the whole solution is built.
-		/// Note that the explicitly passed projects are always built, independently of the solution configuration, but dependencies may not.</param>
-		/// <param name="changedProjects">The changed projects.</param>
-
 		public void beginBuild(Action<BuildStatus> onCompleted, BuildRequest request)
 		{
 			if (IsRunning)
@@ -102,34 +91,30 @@ namespace BuildOnSave
 				
 			_buildCancellation_ = new CancellationTokenSource();
 
-			Action<BuildStatus> completed = status =>
+			void OnCompleted(BuildStatus status)
 			{
 				_buildCancellation_.Dispose();
 				_buildCancellation_ = null;
 				onCompleted(status);
-			};
+			}
 
-			ThreadPool.QueueUserWorkItem(_ => build(request, _buildCancellation_.Token, completed));
+			ThreadPool.QueueUserWorkItem(_ => build(request, _buildCancellation_.Token, OnCompleted));
 		}
 
 		public BuildRequest? tryMakeBuildRequest(string startupProject_, string[] changedProjectPaths)
 		{
-			var allProjects =
-				ProjectCollection
-					.GlobalProjectCollection
-					.LoadedProjects
-					.Select(p => p.CreateProjectInstance())
-					// this removes csproj.user projects
-					.Where(instance => instance.DefaultTargets.Count != 0)
-					.ToArray();
-
 			var solution = (Solution2)_dte.Solution;
+
+			var loadedProjects =
+				solution.GetAllProjects()
+					.Where(p => p.IsLoaded())
+					.ToArray();
+			var dependencies = solution.SolutionBuild.BuildDependencies;
+
 			var configuration = (SolutionConfiguration2)solution.SolutionBuild.ActiveConfiguration;
 
-			// note: fullpath may note be accessible if the project is not loaded!
 			var uniqueNameToProject =
-				solution.Projects
-				.Cast<EnvDTE.Project>()
+				loadedProjects
 				.ToDictionary(p => p.UniqueName, p => p);
 
 			var solutionSelectedPaths =
@@ -141,14 +126,14 @@ namespace BuildOnSave
 					.Select(sc => uniqueNameToProject[sc.ProjectName].FullName)
 					.ToArray();
 
-			var solutionSelectedInstances = filterProjectInstancesByPaths(allProjects, solutionSelectedPaths);
-			var solutionSkippedInstances = allProjects.Except(solutionSelectedInstances).ToArray();
+			var solutionSelectedInstances = Projects.FilterByPaths(loadedProjects, solutionSelectedPaths);
+			var solutionSkippedInstances = loadedProjects.Except(solutionSelectedInstances).ToArray();
 
-			var changedProjects = projectInstancesOfPaths(allProjects, changedProjectPaths);
+			var changedProjects = Projects.OfPaths(loadedProjects, changedProjectPaths);
 
 			if (startupProject_ == null)
 			{
-				var affectedProjects = getAffectedProjects(allProjects, changedProjects);
+				var affectedProjects = dependencies.AffectedProjects(loadedProjects, changedProjects);
 
 				var selected = affectedProjects.Intersect(solutionSelectedInstances).ToArray();
 				if (selected.Length == 0)
@@ -156,22 +141,23 @@ namespace BuildOnSave
 				var skipped = affectedProjects.Intersect(solutionSkippedInstances).ToArray();
 
 				return new BuildRequest(
+					dependencies,
 					selected,
 					skipped,
 					configuration.Name,
-					configuration.PlatformName);
+					configuration.PlatformName, 
+					configuration.SolutionContexts);
 			}
 			else
 			{
-				var startupProjects = filterProjectInstancesByPaths(allProjects, new [] { startupProject_});
-				var startupProjectsClosure =
-					getDependencies(allProjects, startupProjects)
+				var startupProjects = Projects.FilterByPaths(loadedProjects, new [] { startupProject_});
+				var startupProjectsClosure = Projects.Dependencies(dependencies, loadedProjects, startupProjects)
 						.Concat(startupProjects)
 						.ToArray();
 
 				var changedProjectsInStartupProjectsClosure = changedProjects.Intersect(startupProjectsClosure).ToArray();
 
-				var affectedProjects = getAffectedProjects(startupProjectsClosure, changedProjectsInStartupProjectsClosure);
+				var affectedProjects = dependencies.AffectedProjects(startupProjectsClosure, changedProjectsInStartupProjectsClosure);
 
 				var selected = affectedProjects.Intersect(solutionSelectedInstances).ToArray();
 				if (selected.Length == 0)
@@ -179,10 +165,12 @@ namespace BuildOnSave
 				var skipped = affectedProjects.Intersect(solutionSkippedInstances).ToArray();
 
 				return new BuildRequest(
+					dependencies,
 					selected,
 					skipped,
 					configuration.Name,
-					configuration.PlatformName);
+					configuration.PlatformName,
+					configuration.SolutionContexts);
 			}
 		}
 
@@ -327,16 +315,16 @@ namespace BuildOnSave
 		{
 			var projectInfo = 
 				request.PrimaryProjects.Length == 1
-					? ("Project: " + nameOfProject(request.PrimaryProjects[0]))
-					: ("Projects: " + request.PrimaryProjects.Select(nameOfProject).Aggregate((a, b) => a + ";" + b));
-			var configurationInfo = "Configuration: " + request.Configuration + " " + request.Platform;
+					? ("Project: " + request.PrimaryProjects[0].NameOf())
+					: ("Projects: " + request.PrimaryProjects.Select(ProjectInstances.NameOf).Aggregate((a, b) => a + ";" + b));
+			var configurationInfo = "Configuration: " + request.SolutionConfiguration + " " + request.SolutionPlatform;
 
 			coreToIDE(() => _pane.OutputString($"---------- BuildOnSave: {projectInfo}, {configurationInfo} ----------\n"));
 		}
 
 		void notifyProjectSkipped(ProjectInstance project)
 		{
-			var projectName = nameOfProject(project);
+			var projectName = ProjectInstances.NameOf(project);
 			coreToIDE(() => _pane.OutputString($"{projectName} is not built because of the current solution configuration.\n"));
 		}
 
@@ -408,125 +396,6 @@ namespace BuildOnSave
 
 #region ProjectInstance helpers
 
-		/// Returns all the dependencies of a number of projects. Never returns a root, even if roots contain references
-		/// to each other.
-		static ProjectInstance[] getDependencies(ProjectInstance[] allInstances, ProjectInstance[] roots)
-		{
-			var allGuids = allInstances.ToDictionary(getProjectGuid);
-			var todo = new Queue<Guid>(roots.Select(getProjectGuid));
-			var rootSet = new HashSet<Guid>(roots.Select(getProjectGuid));
-			var dependencies = new HashSet<Guid>();
-			while (todo.Count != 0)
-			{
-				var next = todo.Dequeue();
-
-				getDependentProjectGuids(allGuids[next])
-					.Where(g => !dependencies.Contains(g) && !rootSet.Contains(g) && allGuids.ContainsKey(g))
-					.ForEach(g =>
-					{
-						todo.Enqueue(g);
-						dependencies.Add(g);
-					});
-			}
-
-			return dependencies.Select(g => allGuids[g]).ToArray();
-		}
-
-		/// Returns all the affected projects of the given list of projects. 
-		/// Since the roots may refer to each other, the roots are included in the result set.
-		static ProjectInstance[] getAffectedProjects(ProjectInstance[] allInstances, ProjectInstance[] roots)
-		{
-			var dependentMap = createDependentMap(allInstances);
-			var allGuids = allInstances.ToDictionary(getProjectGuid);
-			var rootGuids = roots.Select(getProjectGuid).ToArray();
-			var todo = new Queue<Guid>(rootGuids);
-			var affected = new HashSet<Guid>(rootGuids);
-
-			while (todo.Count != 0)
-			{
-				var next = todo.Dequeue();
-
-				HashSet<Guid> dependents = null;
-				if (!dependentMap.TryGetValue(next, out dependents))
-					continue;
-
-				dependents.ForEach(dep => {
-					if (affected.Add(dep))
-						todo.Enqueue(dep); }
-				);
-			}
-
-			return affected.Select(g => allGuids[g]).ToArray();
-		}
-
-
-		static Dictionary<Guid, Guid[]> createDependencyMap(ProjectInstance[] allInstances)
-		{
-			var allGuids = allInstances.ToDictionary(getProjectGuid);
-			var dict = new Dictionary<Guid, Guid[]>();
-			foreach (var inst in allInstances)
-			{
-				var guid = getProjectGuid(inst);
-				var deps = getDependentProjectGuids(inst).Where(allGuids.ContainsKey).ToArray();
-				dict.Add(guid, deps);
-			}
-			return dict;
-		}
-
-		static Dictionary<Guid, HashSet<Guid>> createDependentMap(ProjectInstance[] allInstances)
-		{
-			var allGuids = allInstances.ToDictionary(getProjectGuid);
-			var dict = new Dictionary<Guid, HashSet<Guid>>();
-			foreach (var inst in allInstances)
-			{
-				var guid = getProjectGuid(inst);
-				var deps = getDependentProjectGuids(inst).Where(allGuids.ContainsKey).ToArray();
-				foreach (var dep in deps)
-				{
-					HashSet<Guid> dependents = null;
-					if (!dict.TryGetValue(dep, out dependents))
-					{
-						dependents = new HashSet<Guid>();
-						dict.Add(dep, dependents);
-					}
-					dependents.Add(guid);
-				}
-			}
-			return dict;
-		}
-
-
-		static Guid getProjectGuid(ProjectInstance instance)
-		{
-			var projectGuid = instance.GetPropertyValue("ProjectGuid");
-			if (projectGuid == "")
-				throw new Exception("project has no Guid");
-			return Guid.Parse(projectGuid);
-		}
-
-		static Guid[] getDependentProjectGuids(ProjectInstance instance)
-		{
-			var refs = instance.GetItems("ProjectReference").Select(item => Guid.Parse(item.GetMetadataValue("Project"))).ToArray();
-			return refs;
-		}
-
-		static ProjectInstance[] projectInstancesOfPaths(ProjectInstance[] allInstances, IEnumerable<string> paths)
-		{
-			var dictByPath = allInstances.ToDictionary(instance => instance.FullPath.ToLowerInvariant());
-			return paths.Select(path => dictByPath[path.ToLowerInvariant()]).ToArray();
-		}
-
-		static string nameOfProject(ProjectInstance instance)
-		{
-			return Path.GetFileNameWithoutExtension(instance.FullPath);
-		}
-
-		static ProjectInstance[] filterProjectInstancesByPaths(ProjectInstance[] instances, IEnumerable<string> paths)
-		{
-			var lookup = new HashSet<string>(paths.Select(path => path.ToLowerInvariant()));
-			return instances.Where(instance => lookup.Contains(instance.FullPath.ToLowerInvariant())).ToArray();
-		}
-
-#endregion
+		#endregion
 	}
 }
