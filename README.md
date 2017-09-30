@@ -6,7 +6,7 @@ Put your CPU's cores to use and minimize the time to wait for your build!
 
 ## Introduction 
 
-BuildOnSave is an extension for Visual Studio 2015 that builds the current solution as soon a file is saved, and in combination with the wonderful extension [SaveAllTheTime](https://github.com/pragmatrix/SaveAllTheTime/releases), enables a live, background build experience while you type.
+BuildOnSave is an extension for Visual Studio 2017 that builds the current solution as soon a file is saved, and in combination with the extension [SaveAllTheTime](https://github.com/pragmatrix/SaveAllTheTime/releases), enables a live, background build experience while you type.
 
 ### Features
 
@@ -22,37 +22,33 @@ These options define what happens as soon one file is saved.
   Rebuilds the complete solution.
 - **Build Startup Project**  
   Rebuilds the startup project.
-- **Build Projects of Saved Files**  
-  Rebuilds the projects the files saved belong to.
-- **Build Affected Projects of Saved Files**   
-  Builds the projects the files saved belong to and all affected projects that are selected in the current solution build. Does not build or check dependencies. 
 
-The last option is the recommended option for now, because it should be the fastest one and should be able to keep all your projects up to date in the least amount of time.
-
-All these options are preliminary and will change in a future version.
 
 ## Download & Installation
 
-At the [Visual Studio Extension Gallery](https://visualstudiogallery.msdn.microsoft.com/2b31b977-ffc9-4066-83e8-c5596786acd0), or via the [Releases tab](https://github.com/pragmatrix/BuildOnSave/releases) here on Github where you can download the BuildOnSave.vsix file and double click it to install it into Visual Studio.
+At the [Visual Studio Extension Gallery](https://marketplace.visualstudio.com/items?itemName=pragmatrix.BuildOnSave), or via the [Releases tab](https://github.com/pragmatrix/BuildOnSave/releases) here on Github where you can download the `BuildOnSave.vsix` file and double click it to install it.
 
 ## Development & Contribution
 
-Clone the repository and open the solution file `BuildOnSave.sln` in Visual Studio 2015. BuildOnSave should compile out of the box.
+Clone the repository and open the solution file `BuildOnSave.sln` in Visual Studio 2017. BuildOnSave should compile out of the box.
 
 To start the Experimental Instance of Visual Studio for a debug session (F5 or Ctrl+F5), add the following to the Debug tab of BuildOnSave's project properties:
 
 - Start external program:  
-  `C:\Program Files (x86)\Microsoft Visual Studio 14.0\Common7\IDE\devenv.exe`
+  `C:\Program Files (x86)\Microsoft Visual Studio\2017\Professional\Common7\IDE\devenv.exe`
 - Command line arguments:  
   `/rootsuffix Exp`
 
-For developing BuildOnSave, please use tabs and the [EditorConfig](https://visualstudiogallery.msdn.microsoft.com/c8bccfe2-650c-4b42-bc5c-845e21f96328) extension.
+For developing BuildOnSave, please use tabs for indent and the [EditorConfig Extension] extension.
 
-Debug information is written to the Windows debug output, which can be monitored with [DebugView](https://technet.microsoft.com/en-us/sysinternals/debugview.aspx).
+Debug information is written to a local Seq server. You need to install [Seq] to take a look at the logs.
+
+[Seq]: https://getseq.net/
+[EditorConfig Extension]: https://visualstudiogallery.msdn.microsoft.com/c8bccfe2-650c-4b42-bc5c-845e21f96328
 
 ## License
 
-Copyright (c) 2016, Armin Sander  
+Copyright (c) 2017, Armin Sander  
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
