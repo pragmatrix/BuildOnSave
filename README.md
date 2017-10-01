@@ -39,12 +39,11 @@ To start the Experimental Instance of Visual Studio for a debug session (F5 or C
 - Command line arguments:  
   `/rootsuffix Exp`
 
-For developing BuildOnSave, please use tabs for indent and the [EditorConfig Extension] extension.
+For developing BuildOnSave, please use tabs for indenting.
 
 Debug information is written to a local Seq server. You need to install [Seq] to take a look at the logs.
 
 [Seq]: https://getseq.net/
-[EditorConfig Extension]: https://visualstudiogallery.msdn.microsoft.com/c8bccfe2-650c-4b42-bc5c-845e21f96328
 
 ## License
 
