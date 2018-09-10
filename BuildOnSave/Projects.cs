@@ -75,12 +75,12 @@ namespace BuildOnSave
 
 		static Dictionary<string, HashSet<string>> DependentMap(BuildDependencies dependencies, Project[] all)
 		{
-			var allGuids = all.ToDictionary(GetProjectKey);
+			var allKeys = all.ToDictionary(GetProjectKey);
 			var dict = new Dictionary<string, HashSet<string>>();
 			foreach (var project in all)
 			{
-				var guid = project.GetProjectKey();
-				var deps = DependentProjectKeys(dependencies, project).Where(allGuids.ContainsKey).ToArray();
+				var key = project.GetProjectKey();
+				var deps = DependentProjectKeys(dependencies, project).Where(allKeys.ContainsKey).ToArray();
 				foreach (var dep in deps)
 				{
 					if (!dict.TryGetValue(dep, out var dependents))
@@ -88,7 +88,7 @@ namespace BuildOnSave
 						dependents = new HashSet<string>();
 						dict.Add(dep, dependents);
 					}
-					dependents.Add(guid);
+					dependents.Add(key);
 				}
 			}
 			return dict;
