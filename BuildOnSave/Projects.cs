@@ -120,12 +120,12 @@ namespace BuildOnSave
 		{
 			return project.UniqueName;
 		}
+
 		public static Dictionary<string, (string, string)[]> GlobalProjectProperties(this SolutionContexts solutionContexts)
 		{
 			return solutionContexts
 				.Cast<SolutionContext>()
 				.ToDictionary(context => context.ProjectName, GlobalProjectProperties);
-			
 		}
 
 		static (string, string)[] GlobalProjectProperties(this SolutionContext context)

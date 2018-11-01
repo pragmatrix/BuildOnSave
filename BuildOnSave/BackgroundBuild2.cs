@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using EnvDTE;
@@ -41,18 +42,21 @@ namespace BuildOnSave
 		{
 			public BuildRequest(
 				BuildDependencies dependencies,
-				Project[] primaryProjects, 
+				Project[] primaryProjects,
 				Project[] skippedProjects,
 				string solutionConfiguration,
 				string solutionPlatform,
-				SolutionContexts solutionContexts)
+				SolutionContexts solutionContexts,
+				(string, string)[] solutionProperties
+				)
 			{
 				var allProjects = primaryProjects.Concat(skippedProjects).ToArray();
 				var allOrdered = Projects.SortByBuildOrder(dependencies, allProjects);
 				var projectProperties = solutionContexts.GlobalProjectProperties();
 				var instanceMap = allProjects.ToDictionary(
 					project => project, 
-					project => project.CreateInstance(projectProperties[project.UniqueName]));
+					project => project.CreateInstance(
+							solutionProperties.Concat(projectProperties[project.UniqueName]).ToArray()));
 
 				PrimaryProjects = primaryProjects.Select(p => instanceMap[p]).ToArray();
 				AllProjectsToBuildOrdered = allOrdered.Select(p => instanceMap[p]).ToArray();
@@ -105,10 +109,22 @@ namespace BuildOnSave
 		{
 			var solution = (Solution2)_dte.Solution;
 
+			var solutionPath = solution.FullName;
+
+			var solutionProperties = new[]
+			{
+				("SolutionPath", solutionPath),
+				("SolutionDir", Path.GetDirectoryName(solutionPath)),
+				("SolutionName", Path.GetFileNameWithoutExtension(solutionPath)),
+				("SolutionFileName", Path.GetFileName(solutionPath)),
+				("SolutionExt", Path.GetExtension(solutionPath))
+			};
+
 			var loadedProjects =
 				solution.GetAllProjects()
 					.Where(p => p.IsLoaded())
 					.ToArray();
+
 			var dependencies = solution.SolutionBuild.BuildDependencies;
 
 			var configuration = (SolutionConfiguration2)solution.SolutionBuild.ActiveConfiguration;
@@ -146,7 +162,9 @@ namespace BuildOnSave
 					skipped,
 					configuration.Name,
 					configuration.PlatformName, 
-					configuration.SolutionContexts);
+					configuration.SolutionContexts,
+					solutionProperties
+					);
 			}
 			else
 			{
@@ -170,7 +188,8 @@ namespace BuildOnSave
 					skipped,
 					configuration.Name,
 					configuration.PlatformName,
-					configuration.SolutionContexts);
+					configuration.SolutionContexts,
+					solutionProperties);
 			}
 		}
 
