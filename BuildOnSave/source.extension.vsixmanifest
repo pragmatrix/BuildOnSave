@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
     <Metadata>
-        <Identity Id="BuildOnSave.Armin Sander.31ad4701-38ab-4dfa-9173-256d95ffed3d" Version="0.29" Language="en-US" Publisher="Armin Sander" />
+        <Identity Id="BuildOnSave.Armin Sander.31ad4701-38ab-4dfa-9173-256d95ffed3d" Version="0.30" Language="en-US" Publisher="Armin Sander" />
         <DisplayName>BuildOnSave</DisplayName>
         <Description xml:space="preserve">Builds your solution when a file is saved.</Description>
         <License>LICENSE.txt</License>
