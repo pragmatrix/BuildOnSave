@@ -1,5 +1,4 @@
 using System;
-using Test;
 
 namespace ConsoleApp
 {
@@ -7,7 +6,7 @@ namespace ConsoleApp
 	{
 		static void Main(string[] args)
 		{
-			Console.WriteLine(typeof(TestClass).Name);
+			Console.WriteLine("");
 		}
 	}
 }

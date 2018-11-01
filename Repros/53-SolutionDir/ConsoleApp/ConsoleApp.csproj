@@ -5,7 +5,12 @@
     <TargetFramework>netcoreapp2.1</TargetFramework>
   </PropertyGroup>
 
-  <ItemGroup>
-    <Compile Include="$(SolutionDir)/Test.cs" />
-  </ItemGroup>
+	<Target Name="TestMessage" AfterTargets="Build">
+		<Message Text="SolutionPath: $(SolutionPath)" Importance="high"/>
+		<Message Text="SolutionDir: $(SolutionDir)" Importance="high"/>
+		<Message Text="SolutionFileName: $(SolutionFileName)" Importance="high"/>
+		<Message Text="SolutionName: $(SolutionName)" Importance="high"/>
+		<Message Text="SolutionExt: $(SolutionExt)" Importance="high"/>
+	</Target>
+	
 </Project>
