@@ -4,17 +4,13 @@ resetei:
 
 msbuild=msbuild.exe -verbosity:m -nologo
 
-conf=Release
-
 .PHONY: build
 build:
-	${msbuild} BuildOnSave.sln -t:"BuildOnSave:Rebuild" -p:Configuration=${conf}
+	${msbuild} BuildOnSave.sln -t:"BuildOnSave:Rebuild" -p:Configuration=Release
+	${msbuild} BuildOnSave.sln -t:"BuildOnSave:Rebuild" -p:Configuration=Debug
 
 .PHONY: package
 package: build
-	cp BuildOnSave/bin/${conf}/BuildOnSave.vsix /tmp/
-
-.PHONY: package-debug
-package-debug: conf=Debug
-package-debug: package
+	cp BuildOnSave/bin/Release/BuildOnSave.vsix /tmp/BuildOnSave.vsix
+	cp BuildOnSave/bin/Debug/BuildOnSave.vsix /tmp/BuildOnSave-Debug.vsix
 
