@@ -10,7 +10,7 @@ BuildOnSave is an extension for Visual Studio 2017 that builds the current solut
 
 ### Features
 
-- There is a menu named BuildOnSave in the Visual Studio menu bar with options to disable BuildOnSave and to specify what excactly should be built. Options are stored per solution.
+- There is a menu named BuildOnSave in the Visual Studio menu bar with options to disable BuildOnSave and to specify what exactly should be built. Options are stored per solution.
 - An output "pane" is registered for BuildOnSave and activates as soon a build starts. 
 - An icon is added to the Standard toolbar that shows the build status for background builds. **red** for build failed, **yellow** to show that the build is indeterminate, and **green** means ready to go. If the icon shows an outline instead of a filled circle, a build is currently active. Clicking the icon opens the BuildOnSave output pane.
 
