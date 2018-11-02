@@ -104,6 +104,9 @@ namespace BuildOnSave
 			var uniqueName = project.UniqueName;
 			Debug.Assert(uniqueName != null);
 			var dependency = dependencies.Item(uniqueName);
+			// dependency might be null, see #52.
+			if (dependency == null)
+				return new string[0];
 			Debug.Assert(dependency != null);
 			Debug.Assert(dependency.RequiredProjects != null);
 			return ((IEnumerable)dependency.RequiredProjects)
