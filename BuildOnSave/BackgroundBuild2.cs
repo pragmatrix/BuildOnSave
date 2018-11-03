@@ -372,7 +372,12 @@ namespace BuildOnSave
 			var projectInfo = 
 				request.PrimaryProjects.Length == 1
 					? ("Project: " + request.PrimaryProjects[0].NameOf())
-					: ("Projects: " + request.PrimaryProjects.Select(ProjectInstances.NameOf).Aggregate((a, b) => a + ";" + b));
+					: ("Projects: " +
+						// request.PrimaryProjects contains the projects that will actually be built, but in the wrong order, so
+						// we filter them from AllProjects (tbd: this could be prepared in the BuildRequest constructor).
+						string.Join(";", request.AllProjectsToBuildOrdered
+							.Where(instance => !request.mustBeSkipped(instance))
+							.Select(ProjectInstances.NameOf)));
 			var configurationInfo = "Configuration: " + request.SolutionConfiguration + " " + request.SolutionPlatform;
 
 			coreToIDE(() => _pane.OutputString($"---------- BuildOnSave: {projectInfo}, {configurationInfo} ----------\n"));
