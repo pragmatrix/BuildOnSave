@@ -137,14 +137,14 @@ namespace BuildOnSave
 			return project.UniqueName;
 		}
 
-		public static Dictionary<string, (string, string)[]> GlobalProjectProperties(this SolutionContexts solutionContexts)
+		public static Dictionary<string, (string, string)[]> GlobalProjectConfigurationProperties(this SolutionContexts solutionContexts)
 		{
 			return solutionContexts
 				.Cast<SolutionContext>()
-				.ToDictionary(context => context.ProjectName, GlobalProjectProperties);
+				.ToDictionary(context => context.ProjectName, GlobalProjectConfigurationProperties);
 		}
 
-		static (string, string)[] GlobalProjectProperties(this SolutionContext context)
+		static (string, string)[] GlobalProjectConfigurationProperties(this SolutionContext context)
 		{
 			// not sure why that is.
 			var platformName = 
