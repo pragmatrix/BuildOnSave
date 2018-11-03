@@ -1,6 +1,5 @@
 using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using EnvDTE;
 using Microsoft.Build.Execution;
@@ -98,25 +97,14 @@ namespace BuildOnSave
 		/// Returns the keys of the direct dependencies of a project.
 		public static string[] DependentProjectKeys(BuildDependencies dependencies, Project project)
 		{
-			// #52.
-			Debug.Assert(dependencies != null);
-			Debug.Assert(project != null);
 			var uniqueName = project.UniqueName;
-			Debug.Assert(uniqueName != null);
 			var dependency = dependencies.Item(uniqueName);
 			// dependency might be null, see #52.
 			if (dependency == null)
 				return new string[0];
-			Debug.Assert(dependency != null);
-			Debug.Assert(dependency.RequiredProjects != null);
 			return ((IEnumerable)dependency.RequiredProjects)
 				.Cast<Project>()
-				.Select(rp =>
-				{
-					Debug.Assert(rp != null);
-					Debug.Assert(rp.UniqueName != null);
-					return rp.UniqueName;
-				})
+				.Select(rp => rp.UniqueName)
 				.ToArray();
 		}
 
