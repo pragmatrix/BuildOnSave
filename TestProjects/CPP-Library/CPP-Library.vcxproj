@@ -23,7 +23,7 @@
     <ProjectGuid>{00DFD198-B4B4-40F0-B0AB-56DFF19B5A51}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>CPPLibrary</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.15063.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.17134.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
