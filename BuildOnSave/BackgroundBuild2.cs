@@ -454,9 +454,5 @@ namespace BuildOnSave
 			public LoggerVerbosity Verbosity { get; set; }
 			public string Parameters { get; set; }
 		}
-
-#region ProjectInstance helpers
-
-		#endregion
 	}
 }
