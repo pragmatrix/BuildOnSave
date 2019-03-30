@@ -1,4 +1,5 @@
-﻿using System;
+using System;
+using System.ComponentModel.Design;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -7,18 +8,19 @@ using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 using Newtonsoft.Json;
 using System.Linq;
+using System.Threading;
 
 namespace BuildOnSave
 {
-	[PackageRegistration(UseManagedResourcesOnly = true)]
+	[PackageRegistration(UseManagedResourcesOnly = true, AllowsBackgroundLoading = true)]
 	[InstalledProductRegistration("#110", "#112", "1.0", IconResourceID = 400)] // Info on this package for Help/About
 	// why is this needed?
 	[ProvideMenuResource("Menus.ctmenu", 1)]
 	[Guid(PackageGuidString)]
 
 	// This package needs to be loaded _before_ the user interacts with its UI.
-	[ProvideAutoLoad(UIContextGuids80.SolutionExists)]
-	public sealed class BuildOnSavePackage : Package
+	[ProvideAutoLoad(UIContextGuids80.SolutionExists, PackageAutoLoadFlags.BackgroundLoad)]
+	public sealed class BuildOnSavePackage : AsyncPackage
 	{
 		const string PackageGuidString = "ce5fb4cb-f9c4-469e-ac59-647eb754148c";
 		BuildOnSave _buildOnSave_;
@@ -50,10 +52,10 @@ namespace BuildOnSave
 		/// Initialization of the package; this method is called right after the package is sited, so this is the place
 		/// where you can put all the initialization code that rely on services provided by VisualStudio.
 		/// </summary>
-		protected override void Initialize()
+		protected override async System.Threading.Tasks.Task InitializeAsync(CancellationToken cancellationToken, IProgress<ServiceProgressData> progress)
 		{
 			// OnLoadOptions is called in base.Initialize(), so we need to set up _buildOnSave_ now
-			_dte = GetService(typeof (DTE)) as DTE;
+			_dte = (DTE) await GetServiceAsync(typeof (DTE));
 			_events = _dte.Events;
 			_solutionEvents = _events.SolutionEvents;
 			_solutionEvents.Opened += solutionOpened;
@@ -61,7 +63,13 @@ namespace BuildOnSave
 
 			try
 			{
-				_buildOnSave_ = new BuildOnSave(this);
+				var commandService = await GetServiceAsync(typeof(IMenuCommandService)) as OleMenuCommandService;
+				// BuildOnSave constructor calls GetService() indirectly, so according to MS a
+				// switch to the main thread is required.
+				// Now I am asking why we need InitializeAsync() at all if we could just switch
+				// to the main thread?
+				await JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
+				_buildOnSave_ = new BuildOnSave(_dte, commandService);
 			}
 			catch (Exception e)
 			{
@@ -69,7 +77,7 @@ namespace BuildOnSave
 				throw;
 			}
 
-			base.Initialize();
+			await base.InitializeAsync(cancellationToken, progress);
 		}
 
 		void solutionOpened()
