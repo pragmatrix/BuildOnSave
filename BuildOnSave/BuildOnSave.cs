@@ -1,5 +1,6 @@
-﻿using System;
+using System;
 using System.ComponentModel.Design;
+using System.Threading.Tasks;
 using EnvDTE;
 using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Shell;
@@ -34,17 +35,15 @@ namespace BuildOnSave
 		SolutionOptions _solutionOptions;
 		Driver _driver_;
 
-		public BuildOnSave(Package package)
+		public BuildOnSave(DTE dte, OleMenuCommandService commandService)
 		{
-			IServiceProvider serviceProvider = package;
-			_dte = serviceProvider.GetService(typeof(DTE)) as DTE;
+			_dte = dte;
 			_events = _dte.Events;
 			_documentEvents = _events.DocumentEvents;
 			_buildEvents = _events.BuildEvents;
 			var guid = typeof(VSConstants.VSStd97CmdID).GUID.ToString("B");
 			_buildSolutionEvent = _dte.Events.CommandEvents[guid, (int)VSConstants.VSStd97CmdID.BuildSln];
 
-			var commandService = serviceProvider.GetService(typeof(IMenuCommandService)) as OleMenuCommandService;
 
 			_topMenu = new MenuCommand(delegate { }, 
 					new CommandID(CommandSet, TopMenuCommandId));
