@@ -16,6 +16,8 @@ namespace BuildOnSave
 		static readonly Guid CommandSet = new Guid("e2f191eb-1c5a-4d3c-adfb-d5b14dc47078");
 
 		readonly DTE _dte;
+		readonly OleMenuCommandService _commandService;
+		readonly Microsoft.VisualStudio.Shell.Interop.IVsUIShell _svsUIShell;
 		readonly MenuCommand _topMenu;
 		readonly MenuCommand _menuItem;
 		readonly MenuCommand _buildTypeSolution;
@@ -35,9 +37,11 @@ namespace BuildOnSave
 		SolutionOptions _solutionOptions;
 		Driver _driver_;
 
-		public BuildOnSave(DTE dte, OleMenuCommandService commandService)
+		public BuildOnSave(DTE dte, OleMenuCommandService commandService, Microsoft.VisualStudio.Shell.Interop.IVsUIShell svsUIShell)
 		{
 			_dte = dte;
+			_commandService = commandService;
+			_svsUIShell = svsUIShell;
 			_events = _dte.Events;
 			_documentEvents = _events.DocumentEvents;
 			_buildEvents = _events.BuildEvents;
@@ -135,7 +139,7 @@ namespace BuildOnSave
 
 			var backgroundBuild = new BackgroundBuild2(_dte, _outputPane);
 			var ui = new DriverUI(_dte, _outputWindow, _outputPane);
-			var driver = new Driver(_dte, buildType, backgroundBuild, ui);
+			var driver = new Driver(_dte, _commandService, _svsUIShell, buildType, backgroundBuild, ui);
 
 			_documentEvents.DocumentSaved += driver.onDocumentSaved;
 

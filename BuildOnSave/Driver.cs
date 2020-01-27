@@ -7,6 +7,8 @@ using System.Threading;
 using EnvDTE;
 using Project = EnvDTE.Project;
 using System.Diagnostics;
+using Microsoft.VisualStudio.Shell;
+using Microsoft.VisualStudio.Shell.Interop;
 
 namespace BuildOnSave
 {
@@ -20,6 +22,8 @@ namespace BuildOnSave
 	sealed class Driver : IDisposable
 	{
 		readonly DTE _dte;
+		readonly OleMenuCommandService _commandService;
+		readonly IVsUIShell _uiShell;	
 		readonly Solution _solution;
 		public readonly BuildType BuildType;
 		readonly BackgroundBuild2 _backgroundBuild;
@@ -27,14 +31,17 @@ namespace BuildOnSave
 		readonly SynchronizationContext _context;
 		readonly List<Document> _savedDocuments = new List<Document>();
 
-		public Driver(DTE dte, BuildType buildType, BackgroundBuild2 backgroundBuild, DriverUI ui)
+		public Driver(DTE dte, OleMenuCommandService commandService, IVsUIShell uiShell, BuildType buildType, BackgroundBuild2 backgroundBuild, DriverUI ui)
 		{
 			_dte = dte;
+			_uiShell = uiShell;
+			_commandService = commandService;
 			_solution = _dte.Solution;
 			BuildType = buildType;
 			_backgroundBuild = backgroundBuild;
 			_ui = ui;
 			_context = SynchronizationContext.Current;
+
 		}
 
 		public void Dispose()
@@ -252,10 +259,25 @@ namespace BuildOnSave
 			if (!_buildAgain)
 			{
 				_ui.setBuildStatus(status);
+				runTests();
 				return;
 			}
 			_buildAgain = false;
 			schedule(beginBuild);
+		}
+
+		void runTests()
+		{
+			Log.D("running tests");
+			// VSEqt.Commands.RunAllImpactedTests.
+			// var command = new System.ComponentModel.Design.CommandID(new Guid("{B85579AA-8BE0-4c4f-A850-90902B317571}"), 12310);
+			// VSEqt.Commands.RunAllTests.
+			var command = new System.ComponentModel.Design.CommandID(new Guid("{B85579AA-8BE0-4c4f-A850-90902B317571}"), 12302);
+			// _commandService.GlobalInvoke(command);
+			_uiShell.PostExecCommand(command.Guid, (uint)command.ID, 0, null);
+			
+
+			Log.D("ran tests");
 		}
 
 		void dumpState([CallerMemberName] string context = "")

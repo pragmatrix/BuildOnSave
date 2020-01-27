@@ -64,12 +64,13 @@ namespace BuildOnSave
 			try
 			{
 				var commandService = await GetServiceAsync(typeof(IMenuCommandService)) as OleMenuCommandService;
+				var svsUIShell = await GetServiceAsync(typeof(SVsUIShell)) as IVsUIShell;
 				// BuildOnSave constructor calls GetService() indirectly, so according to MS a
 				// switch to the main thread is required.
 				// Now I am asking why we need InitializeAsync() at all if we could just switch
 				// to the main thread?
 				await JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
-				_buildOnSave_ = new BuildOnSave(_dte, commandService);
+				_buildOnSave_ = new BuildOnSave(_dte, commandService, svsUIShell);
 			}
 			catch (Exception e)
 			{
